@@ -149,45 +149,60 @@ export class DashboardComponent implements OnInit {
 
   // Filtered Drilldown Rows
   filteredDrilldownRows = computed(() => {
-    let rows = [...this.allFlattenedLogs()];
+    const all = this.allFlattenedLogs();
     const type = this.activeFilterType();
-    const month = this.selectedMonth();
+    const q = this.drilldownSearch().toLowerCase().trim();
 
-    if (type) {
+    let rows: DrilldownRow[] = [];
+
+    // Check if search query targets a specific employee (name or attendanceId) or status/holiday
+    const matchesEmployee =
+      q.length > 0 &&
+      this.allEmployees().some(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.attendanceId.toLowerCase().includes(q) ||
+          e.attendanceId.replace('#', '').toLowerCase().includes(q)
+      );
+
+    const matchesHolidayOrStatus =
+      q === 'h' ||
+      q === 'holiday' ||
+      q.includes('holiday') ||
+      q === 'p' ||
+      q === 'present' ||
+      q === 'a' ||
+      q === 'absent';
+
+    if (matchesEmployee || matchesHolidayOrStatus || type === 'TOTAL_EMPLOYEES') {
+      // When searching for an employee or holiday, or viewing Total Employees,
+      // search across ALL daily records from the uploaded PDF so full records (including Status H) are displayed
+      rows = [...all];
+    } else if (type) {
       switch (type) {
-        case 'TOTAL_EMPLOYEES':
-          rows = this.allEmployees().map((e) => ({
-            employeeName: e.name,
-            attendanceId: e.attendanceId,
-            designation: e.designation,
-            date: month,
-            status: (e.status === 'M' ? 'P' : e.status) as 'P' | 'A' | 'H',
-            inTime: '--',
-            outTime: '--',
-            duration: '--',
-            lateDuration: '--',
-            category: 'TOTAL_EMP' as const,
-          }));
-          break;
         case 'COMPLETED_ONTIME':
-          rows = rows.filter((r) => r.category === 'COMPLETED_ONTIME');
+          rows = all.filter((r) => r.category === 'COMPLETED_ONTIME');
           break;
         case 'INCOMPLETE_ONTIME':
-          rows = rows.filter((r) => r.category === 'INCOMPLETE_ONTIME');
+          rows = all.filter((r) => r.category === 'INCOMPLETE_ONTIME');
           break;
         case 'COMPLETED_LATE':
-          rows = rows.filter((r) => r.category === 'COMPLETED_LATE');
+          rows = all.filter((r) => r.category === 'COMPLETED_LATE');
           break;
         case 'INCOMPLETE_LATE':
-          rows = rows.filter((r) => r.category === 'INCOMPLETE_LATE');
+          rows = all.filter((r) => r.category === 'INCOMPLETE_LATE');
           break;
         case 'MISSED':
-          rows = rows.filter((r) => r.category === 'MISSED');
+          rows = all.filter((r) => r.category === 'MISSED');
+          break;
+        default:
+          rows = [...all];
           break;
       }
+    } else {
+      rows = [...all];
     }
 
-    const q = this.drilldownSearch().toLowerCase().trim();
     if (q) {
       rows = rows.filter(
         (r) =>
@@ -195,8 +210,34 @@ export class DashboardComponent implements OnInit {
           r.attendanceId.toLowerCase().includes(q) ||
           r.designation.toLowerCase().includes(q) ||
           r.date.toLowerCase().includes(q) ||
-          r.status.toLowerCase().includes(q)
+          r.status.toLowerCase() === q ||
+          (q === 'h' && r.status === 'H') ||
+          (q.includes('holiday') && (r.status === 'H' || r.category === 'HOLIDAY')) ||
+          (q === 'p' && r.status === 'P') ||
+          (q.includes('present') && r.status === 'P') ||
+          (q === 'a' && r.status === 'A') ||
+          (q.includes('absent') && r.status === 'A') ||
+          r.category.toLowerCase().replace('_', ' ').includes(q)
       );
+
+      // Graceful fallback: If search in a category gave 0 results, search across all records
+      if (rows.length === 0 && all.length > 0) {
+        rows = all.filter(
+          (r) =>
+            r.employeeName.toLowerCase().includes(q) ||
+            r.attendanceId.toLowerCase().includes(q) ||
+            r.designation.toLowerCase().includes(q) ||
+            r.date.toLowerCase().includes(q) ||
+            r.status.toLowerCase() === q ||
+            (q === 'h' && r.status === 'H') ||
+            (q.includes('holiday') && (r.status === 'H' || r.category === 'HOLIDAY')) ||
+            (q === 'p' && r.status === 'P') ||
+            (q.includes('present') && r.status === 'P') ||
+            (q === 'a' && r.status === 'A') ||
+            (q.includes('absent') && r.status === 'A') ||
+            r.category.toLowerCase().replace('_', ' ').includes(q)
+        );
+      }
     }
 
     // Sort
@@ -572,38 +613,37 @@ export class DashboardComponent implements OnInit {
             break;
         }
 
-        if (cat !== 'HOLIDAY') {
-          const isLate = cat === 'COMPLETED_LATE' || cat === 'INCOMPLETE_LATE';
-          const lateMins = isLate
-            ? AttendanceAnalyticsHelper.calculateLateMinutes(
-              log.inTime,
-              settings.startTime,
-              settings.graceMinutes ?? 0,
-              settings.baseStartTime
-            )
-            : 0;
+        const isHoliday = cat === 'HOLIDAY';
+        const isLate = cat === 'COMPLETED_LATE' || cat === 'INCOMPLETE_LATE';
+        const lateMins = isLate
+          ? AttendanceAnalyticsHelper.calculateLateMinutes(
+            log.inTime,
+            settings.startTime,
+            settings.graceMinutes ?? 0,
+            settings.baseStartTime
+          )
+          : 0;
 
-          const exactDuration =
-            log.duration && log.duration !== '--'
-              ? log.duration
-              : log.inTime && log.outTime && log.outTime !== 'Missing' && log.inTime !== '--'
-              ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
-              : '--';
+        const exactDuration =
+          log.duration && log.duration !== '--'
+            ? log.duration
+            : log.inTime && log.outTime && log.outTime !== 'Missing' && log.inTime !== '--'
+            ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
+            : '--';
 
-          flattened.push({
-            employeeName: emp.name,
-            attendanceId: emp.attendanceId.replace('#', ''),
-            designation: emp.designation,
-            date: log.date,
-            status: log.status,
-            inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : log.inTime || '--',
-            outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : 'Missing',
-            duration: exactDuration,
-            lateDuration: lateMins > 0 ? `${lateMins} mins` : log.lateDuration || '--',
-            category: cat,
-            isLate,
-          });
-        }
+        flattened.push({
+          employeeName: emp.name,
+          attendanceId: emp.attendanceId.replace('#', ''),
+          designation: emp.designation,
+          date: log.date,
+          status: log.status,
+          inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : (log.inTime || '--'),
+          outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday ? '--' : 'Missing'),
+          duration: exactDuration,
+          lateDuration: lateMins > 0 ? `${lateMins} mins` : (log.lateDuration || '--'),
+          category: cat,
+          isLate,
+        });
       });
     });
 
@@ -753,21 +793,10 @@ export class DashboardComponent implements OnInit {
     switch (type) {
       case 'TOTAL_EMPLOYEES':
         title = `Total Employees - ${month}`;
-        matchingRows = emps.map((e) => ({
-          employeeName: e.name,
-          attendanceId: e.attendanceId,
-          designation: e.designation,
-          date: month,
-          status: (e.status === 'M' ? 'P' : e.status) as 'P' | 'A' | 'H',
-          inTime: '--',
-          outTime: '--',
-          duration: '--',
-          lateDuration: '--',
-          category: 'TOTAL_EMP' as const,
-        }));
-        this.affectedCount.set(emps.length);
+        matchingRows = allLogs;
+        this.affectedCount.set(allLogs.length);
         this.avgLateTime.set('--');
-        this.hoursCompletedPct.set(emps.length > 0 ? '100%' : '0%');
+        this.hoursCompletedPct.set(allLogs.length > 0 ? '100%' : '0%');
         this.requiredActionCount.set(emps.filter((e) => e.status === 'M' || e.status === 'A').length);
         break;
 

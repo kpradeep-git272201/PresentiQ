@@ -716,38 +716,37 @@ export class PdfParserService {
             break;
         }
 
-        if (cat !== 'HOLIDAY') {
-          const isLate = cat === 'COMPLETED_LATE' || cat === 'INCOMPLETE_LATE';
-          const lateMins = isLate
-            ? AttendanceAnalyticsHelper.calculateLateMinutes(
-                log.inTime,
-                settings.startTime,
-                settings.graceMinutes ?? 0,
-                settings.baseStartTime
-              )
-            : 0;
+        const isHoliday = cat === 'HOLIDAY';
+        const isLate = cat === 'COMPLETED_LATE' || cat === 'INCOMPLETE_LATE';
+        const lateMins = isLate
+          ? AttendanceAnalyticsHelper.calculateLateMinutes(
+              log.inTime,
+              settings.startTime,
+              settings.graceMinutes ?? 0,
+              settings.baseStartTime
+            )
+          : 0;
 
-          const exactDuration =
-            log.duration && log.duration !== '--'
-              ? log.duration
-              : log.inTime && log.outTime && log.outTime !== 'Missing' && log.inTime !== '--'
-              ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
-              : '--';
+        const exactDuration =
+          log.duration && log.duration !== '--'
+            ? log.duration
+            : log.inTime && log.outTime && log.outTime !== 'Missing' && log.inTime !== '--'
+            ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
+            : '--';
 
-          flattenedLogs.push({
-            employeeName: emp.name,
-            attendanceId: emp.attendanceId.replace('#', ''),
-            designation: emp.designation,
-            date: log.date,
-            status: log.status,
-            inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : log.inTime || '--',
-            outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : 'Missing',
-            duration: exactDuration,
-            lateDuration: lateMins > 0 ? `${lateMins} mins` : log.lateDuration || '--',
-            category: cat,
-            isLate,
-          });
-        }
+        flattenedLogs.push({
+          employeeName: emp.name,
+          attendanceId: emp.attendanceId.replace('#', ''),
+          designation: emp.designation,
+          date: log.date,
+          status: log.status,
+          inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : (log.inTime || '--'),
+          outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday ? '--' : 'Missing'),
+          duration: exactDuration,
+          lateDuration: lateMins > 0 ? `${lateMins} mins` : (log.lateDuration || '--'),
+          category: cat,
+          isLate,
+        });
       });
     });
 
