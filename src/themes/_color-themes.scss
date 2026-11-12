@@ -1,0 +1,440 @@
+// =============================================================================
+//  COLOUR THEMES
+// -----------------------------------------------------------------------------
+//  The five colourways offered by the header's Theme menu.
+//
+//  How a theme is applied
+//  ----------------------
+//  ThemeService puts a single `theme-<hue>` class on <html>. A theme is nothing
+//  but a set of CSS custom properties, so every surface already written as
+//  `var(--token)` — the sidebar, the header chrome, the loaders — re-tints with
+//  no JavaScript and no markup change.
+//
+//  `:root` carries the blue set, so a document with no theme class (the first
+//  paint before ThemeService runs, and the SSR output) renders exactly like the
+//  app did before themes existed. Blue's values are deliberately the ones that
+//  were hard-coded in styles.scss and header.component.scss, so switching the
+//  default theme on is a no-op visually.
+//
+//  Why the theme class sits on <html> and not <body>
+//  -------------------------------------------------
+//  `html.theme-red` has a higher specificity than the `:root` defaults, so the
+//  themed values win regardless of source order, and the tokens are inherited by
+//  the CDK overlay container (menus, dialogs, select panels) which is a child of
+//  <body>. Dark mode uses <html> + <body> for a different reason (it needs to
+//  out-specify component rules); the two are independent and compose.
+// =============================================================================
+
+@use "sass:map";
+
+// -----------------------------------------------------------------------------
+//  PALETTES
+// -----------------------------------------------------------------------------
+//  hue     - the dot and label colour in the Theme menu; the theme's identity.
+//            Chosen to read unambiguously as its name on white at 13px/600.
+//  primary - brand colour for loaders and small accents on light surfaces.
+//  chrome  - the solid fill the header buttons take on hover/active.
+//  outer   - the sidebar rail; panel - the flyout that sits on top of it.
+//  accent  - the highlight inside the sidebar and, in dark mode, every
+//            active/selected state. A LIGHT tint, so both white sidebar text
+//            and the `#10233a` foreground dark mode puts ON the accent stay
+//            legible against it.
+//
+//  On lightness
+//  ------------
+//  A first pass put every rail down at blue's L*~16 (#3a1620 for red,
+//  #37170f for orange). Blue survives that because blue is the one hue that
+//  still reads as itself at near-black; red goes to maroon and orange goes to
+//  brown, and the two themes became indistinguishable. Red, purple, orange and
+//  green therefore sit around L*30-40, which is where each still reads as its
+//  own name. Every rail below keeps white text at >=6.8:1.
+//
+//  Blue keeps the navy the app already shipped (#16293f), because blue is the
+//  default and its values are what make "no theme chosen" a visual no-op.
+// -----------------------------------------------------------------------------
+
+$themes: (
+  "blue": (
+    hue: #1e3a8a,
+    primary: #0d6efd,
+    chrome: #13263d,
+    chrome-shadow: rgba(19, 38, 61, 0.18),
+    outer: #16293f,
+    panel: #23364b,
+    accent: #f5a524,
+    accent-soft: rgba(245, 165, 36, 0.14),
+  ),
+  "red": (
+    hue: #b91c3c,
+    primary: #c2213f,
+    chrome: #7a1120,
+    chrome-shadow: rgba(122, 17, 32, 0.28),
+    outer: #7a1120,
+    panel: #94202f,
+    accent: #ffc857,
+    accent-soft: rgba(255, 200, 87, 0.18),
+  ),
+  "purple": (
+    hue: #7e1d91,
+    primary: #8b2ba0,
+    chrome: #5b1a6b,
+    chrome-shadow: rgba(91, 26, 107, 0.28),
+    outer: #5b1a6b,
+    panel: #6f2280,
+    accent: #f5c2ff,
+    accent-soft: rgba(245, 194, 255, 0.18),
+  ),
+  // `hue` was #9f3027 here, which is a brick red - it made the Orange entry in
+  // the menu, and the theme it applies, read as a second red theme.
+  "orange": (
+    hue: #c2410c,
+    primary: #c2410c,
+    chrome: #9a3412,
+    chrome-shadow: rgba(154, 52, 18, 0.28),
+    outer: #9a3412,
+    panel: #b4470f,
+    accent: #ffd166,
+    accent-soft: rgba(255, 209, 102, 0.18),
+  ),
+  "green": (
+    hue: #25651c,
+    primary: #2f7d24,
+    chrome: #1f5c1a,
+    chrome-shadow: rgba(31, 92, 26, 0.28),
+    outer: #1f5c1a,
+    panel: #2a7523,
+    accent: #c5f27d,
+    accent-soft: rgba(197, 242, 125, 0.2),
+  ),
+);
+
+// -----------------------------------------------------------------------------
+//  TOKEN EMISSION
+// -----------------------------------------------------------------------------
+
+@mixin tokens($t) {
+  --theme-hue: #{map.get($t, hue)};
+  --primary-color: #{map.get($t, primary)};
+
+  // NB: --icon-color is deliberately NOT emitted. Its one consumer
+  // (.lang-icon, in the top strip) sits on the dark navy bar and currently
+  // relies on the token being undefined so the icon inherits the bar's white
+  // text. Defining it would paint a dark hue on a dark bar.
+
+  // Header chrome: the fill and shadow the action buttons, the user badge and
+  // the financial-year picker take on hover / when open.
+  --header-chrome: #{map.get($t, chrome)};
+  --header-chrome-shadow: #{map.get($t, chrome-shadow)};
+
+  // Sidebar. `--theme-bg` and `--menu-bg-color` are older aliases of the rail
+  // colour that a handful of components still read.
+  --outer-sidebar-bg: #{map.get($t, outer)};
+  --sidebar-panel-bg: #{map.get($t, panel)};
+  --theme-bg: #{map.get($t, outer)};
+  --menu-bg-color: #{map.get($t, outer)};
+
+  --accent: #{map.get($t, accent)};
+  --accent-soft: #{map.get($t, accent-soft)};
+}
+
+@mixin styles {
+  // Default = blue, for documents that have not been themed yet.
+  :root {
+    @include tokens(map.get($themes, "blue"));
+  }
+
+  @each $name, $t in $themes {
+    html.theme-#{$name} {
+      @include tokens($t);
+    }
+  }
+
+  // The surface every popover paints itself with. Declared here rather than in
+  // styles.scss because the theme menu's arrow inherits it, and dark mode
+  // re-points it at the dark overlay colour.
+  :root {
+    --menu-surface: #ffffff;
+  }
+
+  @include theme-menu;
+  @include mobile-more-menu;
+}
+
+// =============================================================================
+//  THEME MENU  (header "Theme" button)
+// -----------------------------------------------------------------------------
+//  These rules MUST live in the global stylesheet. `mat-menu` renders its panel
+//  into the CDK overlay container, which is a direct child of <body> and carries
+//  no `_ngcontent-*` attribute, so an identical block inside
+//  header.component.scss (emulated encapsulation) never matched a single
+//  element — which is why the menu shipped unstyled: full-width rows, no colour
+//  dots, no colour on the labels.
+// =============================================================================
+
+@mixin theme-menu {
+  .theme-menu-panel.mat-mdc-menu-panel {
+    // !important throughout: Angular Material's own menu styles are injected
+    // into <head> at runtime, i.e. AFTER this stylesheet, so on equal
+    // specificity they win on source order. `position` and `overflow` in
+    // particular are set by `.mat-mdc-menu-panel`, and both have to hold here
+    // or the arrow either escapes to the overlay pane or gets clipped away.
+    position: relative !important;
+
+    // The panel is 5 fixed rows, so it never needs to scroll — and `visible` is
+    // what lets the arrow below poke out past the top edge.
+    overflow: visible !important;
+
+    min-width: 152px !important;
+    max-width: 152px !important;
+
+    // Leaves room for the arrow between the button and the panel.
+    margin-top: 10px !important;
+
+    padding: 6px !important;
+
+    border-radius: 14px !important;
+
+    background: var(--menu-surface) !important;
+
+    box-shadow:
+      0 10px 26px rgba(15, 23, 42, 0.18),
+      0 2px 8px rgba(15, 23, 42, 0.1) !important;
+  }
+
+  // Arrow pointing back at the Theme button. The panel is right-aligned to the
+  // trigger (xPosition="before") and the trigger is 109px wide, so a 14px square
+  // whose right edge sits 47px in from the panel's right edge has its centre
+  // 54px in — the middle of the button.
+  //
+  // It reads --menu-surface directly rather than `background: inherit`: dark
+  // mode re-points that one token, so the arrow follows the panel into dark mode
+  // without needing a rule of its own, and it no longer depends on the parent's
+  // background resolving first.
+  .theme-menu-panel.mat-mdc-menu-panel::before {
+    content: "" !important;
+
+    position: absolute !important;
+
+    top: -6px !important;
+    right: 47px !important;
+
+    width: 14px !important;
+    height: 14px !important;
+
+    background: var(--menu-surface) !important;
+
+    border-radius: 3px 0 0 0 !important;
+
+    transform: rotate(45deg) !important;
+
+    // Above the panel's own background so the lower half of the square is
+    // hidden against it, below the rows so it can never cover a label.
+    z-index: 0 !important;
+
+    box-shadow: -2px -2px 5px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  .theme-menu-panel {
+    // The content box would otherwise clip the arrow just as the panel does.
+    .mat-mdc-menu-content {
+      position: relative !important;
+
+      overflow: visible !important;
+
+      padding: 0 !important;
+
+      background: transparent !important;
+
+      // Keeps the rows painting over the arrow's hidden half.
+      z-index: 1 !important;
+    }
+
+    .mat-mdc-menu-item {
+      display: flex !important;
+      align-items: center !important;
+
+      min-height: 34px !important;
+      height: 34px !important;
+
+      padding: 0 10px !important;
+
+      margin: 1px 0;
+
+      border-radius: 8px !important;
+
+      background: transparent !important;
+    }
+
+    // Material centres the row's text node with its own line-height rules; the
+    // flex row below is what actually keeps the dot and the label on one
+    // baseline, and every dot on the same left offset.
+    .mat-mdc-menu-item .mat-mdc-menu-item-text {
+      display: flex !important;
+      align-items: center !important;
+
+      flex: 1 1 auto;
+
+      min-width: 0;
+
+      font-size: 13px !important;
+      font-weight: 600 !important;
+
+      line-height: 20px !important;
+
+      letter-spacing: 0.1px;
+    }
+
+    .mat-mdc-menu-item:hover,
+    .mat-mdc-menu-item.cdk-program-focused,
+    .mat-mdc-menu-item.cdk-keyboard-focused {
+      background: rgba(15, 23, 42, 0.055) !important;
+    }
+
+    .mat-mdc-menu-item:hover .theme-color-indicator {
+      transform: scale(1.15);
+
+      box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  //  The row itself.
+  //
+  //  Deliberately NOT nested under `.theme-menu-panel`. These three classes
+  //  exist only inside this menu, so scoping buys nothing — and un-nesting means
+  //  the dot still has a size even if `panelClass` ever fails to reach the
+  //  overlay panel. An empty <span> with a background but no box is invisible,
+  //  which is the one failure mode worth designing out.
+  //
+  //  The flex row is also what does the actual aligning: one baseline for the
+  //  dot and the label, and the same left offset for every dot in the list.
+  // -------------------------------------------------------------------------
+
+  .theme-item-content {
+    display: flex !important;
+    align-items: center !important;
+
+    gap: 10px !important;
+
+    width: 100%;
+  }
+
+  .theme-color-indicator {
+    display: block !important;
+
+    width: 10px !important;
+    height: 10px !important;
+
+    // Belt and braces with the flex basis: a dot must never collapse, whether
+    // or not its parent ended up a flex container.
+    min-width: 10px !important;
+    min-height: 10px !important;
+
+    flex: 0 0 10px !important;
+
+    border-radius: 50% !important;
+
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+
+  .theme-label {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+
+    line-height: 20px !important;
+
+    white-space: nowrap !important;
+  }
+
+  // The dot and the label of each entry are painted in that theme's own hue, so
+  // the menu doubles as the palette legend. Same map as the tokens above, so the
+  // swatch can never drift from the theme it applies.
+  @each $name, $t in $themes {
+    .theme-color-indicator.#{$name}-theme {
+      background-color: map.get($t, hue);
+    }
+
+    .theme-label.#{$name}-theme {
+      color: map.get($t, hue);
+    }
+  }
+}
+
+// =============================================================================
+//  MOBILE "MORE" MENU
+// -----------------------------------------------------------------------------
+//  Same overlay-container problem as above: this block was unreachable inside
+//  header.component.scss.
+// =============================================================================
+
+@mixin mobile-more-menu {
+  .mobile-more-menu-panel {
+    &.mat-mdc-menu-panel {
+      min-width: 220px !important;
+      max-width: 280px !important;
+
+      margin-top: 8px;
+
+      padding: 5px !important;
+
+      border-radius: 12px !important;
+
+      background: var(--menu-surface) !important;
+
+      box-shadow:
+        0 8px 20px rgba(15, 23, 42, 0.16),
+        0 2px 6px rgba(15, 23, 42, 0.1) !important;
+    }
+
+    .mat-mdc-menu-content {
+      padding: 2px !important;
+
+      background: transparent !important;
+    }
+
+    .mat-mdc-menu-item {
+      display: flex !important;
+      align-items: center !important;
+
+      min-height: 42px !important;
+      height: 42px !important;
+
+      padding: 0 12px !important;
+
+      margin: 2px 0;
+
+      border-radius: 8px !important;
+
+      font-size: 13px !important;
+      font-weight: 600 !important;
+
+      color: #334155 !important;
+    }
+
+    .mat-mdc-menu-item mat-icon {
+      width: 20px;
+      height: 20px;
+
+      margin-right: 10px;
+
+      font-size: 20px;
+      line-height: 20px;
+
+      color: #475569;
+
+      flex-shrink: 0;
+    }
+
+    .mat-mdc-menu-item .mat-mdc-menu-item-text {
+      white-space: nowrap;
+    }
+
+    .mat-mdc-menu-item:hover,
+    .mat-mdc-menu-item.cdk-program-focused,
+    .mat-mdc-menu-item.cdk-keyboard-focused {
+      background: rgba(15, 23, 42, 0.055) !important;
+    }
+  }
+}

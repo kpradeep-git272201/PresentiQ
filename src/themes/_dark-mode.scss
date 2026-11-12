@@ -1,0 +1,2567 @@
+// =============================================================================
+//  DARK MODE
+// -----------------------------------------------------------------------------
+//  Single source of truth for the application's dark appearance.
+//
+//  How it is applied
+//  -----------------
+//  ThemeService puts the `dark-mode` class on BOTH <html> and <body>:
+//    * <html> carries `color-scheme: dark`, which flips every Angular Material
+//      system token (they are emitted as `light-dark(..)` values).
+//    * <body> carries the same class so that component-scoped
+//      `body.dark-mode { .. }` blocks and the CDK overlay container (a child of
+//      <body>: dialogs, menus, select panels, tooltips, snackbars) match too.
+//
+//  Why the selectors look the way they do
+//  --------------------------------------
+//  Component SCSS in this project sets colours with hard-coded hex values and
+//  `!important`. Angular compiles those rules to `.foo[_ngcontent-x]`
+//  (specificity 0,2,0) and injects them AFTER the global stylesheet, so a
+//  global `.foo` would lose. Every rule below is therefore prefixed with the
+//  dark root, which lifts it above the component rule, and uses `!important`
+//  where the component rule does.
+//
+//  Nothing here leaks into light mode: every declaration lives under
+//  `html.dark-mode` / `body.dark-mode`.
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+//  PALETTE  (from the dark-mode Figma)
+// -----------------------------------------------------------------------------
+
+$bg: #0d1b2d; // page background
+$bg-deep: #0a1524; // behind the page / scroll gutter
+$surface: #16293f; // cards, panels, sheets
+$surface-2: #1d3550; // toolbars, table headers, inputs
+$surface-3: #26405f; // hover / raised
+$overlay: #15283d; // dialogs, menus, popovers
+
+$border: #2d4762;
+$border-soft: rgba(255, 255, 255, 0.1);
+$border-strong: #3d5a7a;
+
+$text: #e8eef7;
+$text-2: #b9c7d9;
+$muted: #8ea3bb;
+$disabled: #6a7d94;
+
+// The active-nav / current-page highlight. Read from the token rather than
+// hard-coded so dark mode follows the selected colourway
+// (themes/_color-themes.scss) instead of staying amber under every theme.
+// Every use below passes it straight through as a colour value - none of them
+// call rgba()/lighten() on it - so a var() reference is safe here.
+$accent: var(--accent);
+$link: #7cb3f5;
+$primary: #3b82f6;
+$primary-soft: rgba(59, 130, 246, 0.18);
+$success: #4ade80;
+$success-soft: rgba(74, 222, 128, 0.16);
+$warning: #fbbf24;
+$danger: #f87171;
+$danger-soft: rgba(248, 113, 113, 0.16);
+
+$shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+$shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.55);
+
+// Applied to <html.dark-mode> and <body.dark-mode> so that both the document
+// scope and the overlay-container scope are covered.
+//
+// The class is deliberately repeated. Angular's emulated encapsulation appends
+// `[_ngcontent-x]` to EVERY compound selector, so a component rule such as
+// `.data-table thead th` compiles to specificity (0,4,2) — more than a plain
+// `html.dark-mode .data-table thead th` (0,2,3) — and component styles are
+// injected into <head> after the global sheet, so ties go to the component.
+// Repeating the class lifts the prefix to (0,5,1), which clears any component
+// selector up to four compounds deep. This is the only reliable way to retint
+// hard-coded, `!important` component colours without editing all ~300 of them.
+$dm: ".dark-mode.dark-mode.dark-mode.dark-mode.dark-mode";
+$root: "html#{$dm}, body#{$dm}";
+
+@mixin styles {
+  // ===========================================================================
+  //  1. DESIGN TOKENS
+  //     Everything already written as `var(--token)` flips for free.
+  // ===========================================================================
+
+  #{$root} {
+    --bg: #{$bg};
+    --card-bg: #{$surface};
+    --card-inner: #{$surface-2};
+    --container-bg: #{$surface};
+    --sidenav-content-bg: #{$bg};
+    --toolbar-bg: #{$surface-2};
+    --table-header-bg: #{$surface-2};
+    --main-header-bg: #{$surface};
+    --sub-header-bg: #{$surface-2};
+    --sub-header-border: #{$border};
+    --border: #{$border};
+
+    --text-secondary: #{$text-2};
+    --text-muted: #{$muted};
+    --back-color: #{$text};
+    --my-theme-bg: #{$surface};
+
+    --blue: #{$primary};
+    --blue-soft: #{$primary-soft};
+    --green-soft: #{$success-soft};
+    --green-text: #{$success};
+    --orange-soft: rgba(245, 165, 36, 0.16);
+    --red: #{$danger};
+
+    // The surface the header's Theme / More popovers paint themselves with.
+    // Their arrow inherits it, so re-pointing this one token moves the whole
+    // popover - panel and arrow - into dark mode.
+    --menu-surface: #{$overlay};
+
+    --over-layer-color: rgba(4, 10, 18, 0.72);
+    --error-msg-color: #{$danger};
+    --shadow: #{$shadow};
+
+    // -------------------------------------------------------------------------
+    //  Angular Material M3 system tokens.
+    //
+    //  `color-scheme: dark` on <html> already switches every --mat-sys-* token
+    //  to its dark value, but Material's stock dark surfaces are a violet-tinted
+    //  near-black (#151316) that clashes with this app's navy. Re-pointing the
+    //  surface/outline tokens at the navy palette makes every Material component
+    //  — dialogs, menus, select panels, datepickers, tabs, cards — match the
+    //  rest of the UI instead of just "being dark".
+    // -------------------------------------------------------------------------
+    --mat-sys-background: #{$bg};
+    --mat-sys-on-background: #{$text};
+    --mat-sys-surface: #{$surface};
+    --mat-sys-surface-dim: #{$bg};
+    --mat-sys-surface-bright: #{$surface-3};
+    --mat-sys-surface-variant: #{$surface-2};
+    --mat-sys-surface-tint: #{$accent};
+    --mat-sys-surface-container-lowest: #{$bg-deep};
+    --mat-sys-surface-container-low: #{$surface};
+    --mat-sys-surface-container: #{$overlay};
+    --mat-sys-surface-container-high: #{$surface-2};
+    --mat-sys-surface-container-highest: #{$surface-3};
+    --mat-sys-on-surface: #{$text};
+    --mat-sys-on-surface-variant: #{$text-2};
+    --mat-sys-outline: #{$border-strong};
+    --mat-sys-outline-variant: #{$border};
+    --mat-sys-inverse-surface: #{$text};
+    --mat-sys-inverse-on-surface: #{$bg};
+    --mat-sys-scrim: #04070d;
+
+    --mat-sys-primary: #{$accent};
+    --mat-sys-on-primary: #10233a;
+    --mat-sys-primary-container: #{$surface-3};
+    --mat-sys-on-primary-container: #{$text};
+    --mat-sys-secondary: #{$link};
+    --mat-sys-on-secondary: #10233a;
+    --mat-sys-secondary-container: #{$surface-2};
+    --mat-sys-on-secondary-container: #{$text};
+    --mat-sys-error: #{$danger};
+    --mat-sys-on-error: #2a0b0b;
+    --mat-sys-error-container: #5b1d1d;
+    --mat-sys-on-error-container: #ffd9d9;
+
+    // Dark-mode-only helpers, used by the rules further down.
+    --dm-bg: #{$bg};
+    --dm-surface: #{$surface};
+    --dm-surface-2: #{$surface-2};
+    --dm-surface-3: #{$surface-3};
+    --dm-overlay: #{$overlay};
+    --dm-border: #{$border};
+    --dm-text: #{$text};
+    --dm-text-2: #{$text-2};
+    --dm-muted: #{$muted};
+    --dm-accent: #{$accent};
+  }
+
+  // ===========================================================================
+  //  2. BASE / SCAFFOLDING
+  // ===========================================================================
+
+  #{$root} {
+    background-color: $bg-deep;
+    color: $text;
+  }
+
+  #{$root} {
+    a:not(.btn):not([class*="button"]):not(.sub-nav-link):not(.submenu-btn) {
+      color: $link;
+    }
+
+    hr,
+    .dotted-separator,
+    .footer-dashed-separator {
+      border-color: $border !important;
+    }
+
+    // Page shell -------------------------------------------------------------
+    mat-sidenav-content,
+    .mat-sidenav-content,
+    .mat-drawer-content,
+    .mat-sidenav-container,
+    .mat-drawer-container {
+      background-color: $bg !important;
+      color: $text;
+    }
+
+    // Generic page text: only elements that carry no surface of their own.
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    label,
+    .title,
+    .page-title,
+    .form-title,
+    .main-heading,
+    .main-heading1,
+    .sub-heading,
+    .section-title,
+    .form-label,
+    .heading-margin,
+    .form-section-header,
+    .headerLabel,
+    .header-name,
+    .label-section,
+    .detail-label,
+    .details-label {
+      color: $text;
+    }
+
+    .form-label,
+    .detail-label,
+    .details-label,
+    .char-count,
+    .note,
+    .hint-note,
+    .doc-meta,
+    .doc-description,
+    .photo-caption,
+    .breadcrumb,
+    .show-label,
+    .entries-label,
+    .section-label,
+    .placeholder {
+      color: $text-2;
+    }
+
+    .required,
+    .error,
+    .error-message,
+    .text-danger,
+    .invalid-feedback {
+      color: $danger !important;
+    }
+
+    // Scrollbars -------------------------------------------------------------
+    * {
+      scrollbar-color: #3a5473 transparent;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent !important;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background-color: #3a5473 !important;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background-color: #4b6a8e !important;
+    }
+  }
+
+  // ===========================================================================
+  //  3. LAYOUT SHELL
+  //     Top strip, main header, sub header, sidebar, footer, page title.
+  // ===========================================================================
+
+  #{$root} {
+    // --- top strip (already navy in light mode; deepen it) ------------------
+    .top-header {
+      background-color: $bg-deep !important;
+      border-bottom: 1px solid $border-soft;
+    }
+
+    // The top strip and the sidebar are dark in BOTH modes, so their links must
+    // stay white instead of picking up the light-on-dark link colour above.
+    .top-header a,
+    .top-header .text-color,
+    .filter-panel a,
+    .matSidenav a {
+      color: var(--white) !important;
+    }
+
+    // --- main header --------------------------------------------------------
+    .egram-header {
+      background-color: $surface !important;
+      border-bottom-color: $border !important;
+    }
+
+    .logo-title-hindi {
+      color: #86b8f0;
+
+      .prefix {
+        color: #f08a8a;
+      }
+    }
+
+    .logo-title-eng {
+      color: $text;
+    }
+
+    .logo-subtitle {
+      color: $muted;
+    }
+
+    .header-btn,
+    .mobile-more-btn,
+    .mode-toggle-btn,
+    .fy-selector-wrapper,
+    .user-badge {
+      background-color: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+    }
+
+    .header-btn .btn-icon,
+    .header-btn .btn-text,
+    .header-btn .btn-caret,
+    .mobile-more-btn mat-icon,
+    .mode-option,
+    .fy-icon,
+    .fy-selected-value,
+    .fy-dropdown-arrow mat-icon,
+    .badge-caret {
+      color: $text-2 !important;
+    }
+
+    .header-btn:hover,
+    .mobile-more-btn:hover,
+    .user-badge:hover,
+    .user-badge.profile-open {
+      background-color: $surface-3 !important;
+      border-color: $accent !important;
+
+      .btn-icon,
+      .btn-text,
+      .btn-caret,
+      mat-icon {
+        color: $text !important;
+      }
+    }
+
+    .mode-option.active {
+      background-color: $accent !important;
+      color: #10233a !important;
+    }
+
+    .fy-label-text {
+      background: $surface !important;
+      color: $muted !important;
+    }
+
+    .user-display-name {
+      color: $text !important;
+    }
+
+    .user-display-desc {
+      color: $muted !important;
+    }
+
+    .avatar-circle {
+      background-color: $surface-3 !important;
+      color: $text !important;
+    }
+
+    // --- header pop-overs ---------------------------------------------------
+    .fy-dropdown-popup,
+    .profile-card-dropdown,
+    .accessibility-card-popup {
+      background: $overlay !important;
+      border-color: $border !important;
+      color: $text !important;
+      box-shadow: $shadow-lg !important;
+    }
+
+    .fy-dropdown-popup::before {
+      border-bottom-color: $overlay !important;
+    }
+
+    .profile-card-dropdown::before,
+    .popup-arrow {
+      background: $overlay !important;
+      border-left-color: $border !important;
+      border-top-color: $border !important;
+    }
+
+    .fy-option {
+      color: $text-2 !important;
+
+      &:hover,
+      &.active {
+        background: $surface-3 !important;
+        color: $text !important;
+      }
+    }
+
+    .detail-value {
+      color: $text !important;
+    }
+
+    .profile-detail-divider {
+      background: repeating-linear-gradient(
+        to right,
+        #{$border} 0,
+        #{$border} 8px,
+        transparent 8px,
+        transparent 16px
+      ) !important;
+    }
+
+    .access-title,
+    .access-tile {
+      color: $text !important;
+    }
+
+    .access-tile {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+
+      &:hover {
+        background-color: $surface-3 !important;
+        border-color: $accent !important;
+      }
+    }
+
+    // --- sub header ---------------------------------------------------------
+    .sub-header {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+      color: $text !important;
+    }
+
+    .sub-nav-link {
+      color: $text-2 !important;
+
+      &.active {
+        color: $accent !important;
+      }
+    }
+
+    .sub-header .menu-text,
+    .sub-header .dropdown-icon,
+    .fy-label {
+      color: $text !important;
+    }
+
+    // --- sidebar (dark in both modes; only soften the edges) ----------------
+    .matSidenav,
+    mat-sidenav.matSidenav {
+      border-right: 1px solid $border-soft;
+    }
+
+    // --- page title + breadcrumb -------------------------------------------
+    .page-header .main-heading {
+      color: $text !important;
+    }
+
+    .page-header .info-icon {
+      color: $muted !important;
+    }
+
+    .breadcrumb {
+      color: $muted !important;
+    }
+
+    .current-page {
+      color: $accent !important;
+    }
+
+    .back-btn {
+      background-color: $surface-2 !important;
+
+      &:hover {
+        background-color: $surface-3 !important;
+      }
+    }
+
+    // --- footer -------------------------------------------------------------
+    .app-footer {
+      background-color: $surface !important;
+      border-top-color: $border !important;
+
+      .footer-left p {
+        color: $text-2 !important;
+      }
+    }
+  }
+
+  // ===========================================================================
+  //  4. SURFACES: cards, panels, containers
+  // ===========================================================================
+
+  #{$root} {
+    .card,
+    .main-card,
+    .card-wrapper,
+    .card-container-res,
+    .form-container,
+    .inner-container,
+    .details-container,
+    .table-space,
+    .tool-card,
+    .parent-card,
+    .branch-card,
+    .data-card,
+    .dashboard-card,
+    .document-card,
+    .field-card,
+    .tab-card,
+    .tabs-card,
+    .steps-card,
+    .agency-main-card,
+    .agency-wrapper,
+    .help-sidebar-card,
+    .category-card,
+    .security-panel,
+    .header-container,
+    .header-container1,
+    .modal-content,
+    .normal-box,
+    .scrollable-box,
+    .notice-box,
+    .upload-box,
+    .custom-file-upload-box,
+    .dual-list-container,
+    .login-container,
+    .search-screen-container,
+    .chairperson-details,
+    .otp-info-banner,
+    .mat-mdc-card,
+    .mat-card {
+      background-color: $surface !important;
+      border-color: $border !important;
+      color: $text;
+    }
+
+    // Header bars that DO have their own plate in light mode keep a raised tone.
+    .card-inner,
+    .card-header,
+    .form-section-header,
+    .application-modal-header,
+    .menu-popup-header,
+    .grid-toolbar,
+    .filter-panel-header {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+      color: $text !important;
+    }
+
+    // Header bars that are TRANSPARENT in light mode must stay transparent here.
+    // `.popup-header` in particular carries 2.5rem of bottom padding, so giving
+    // it a tone of its own paints a tall strip under the title and close button
+    // that exists in neither the design nor light mode.
+    .popup-header,
+    .privilege-modal-header,
+    .role-modal-header,
+    .modal-header {
+      background-color: transparent !important;
+      border-color: $border !important;
+      color: $text !important;
+    }
+
+    .card-title,
+    .card-row .label,
+    .card-row .value,
+    .privilege-modal-header h2,
+    .popup-title {
+      color: $text !important;
+    }
+
+    .card-row {
+      border-color: $border !important;
+    }
+
+    .card-row .label {
+      color: $muted !important;
+    }
+
+    .data-card:hover,
+    .document-card:hover,
+    .branch-card:hover {
+      background-color: $surface-2 !important;
+      border-color: $border-strong !important;
+    }
+  }
+
+  // ===========================================================================
+  //  5. TABLES
+  // ===========================================================================
+
+  #{$root} {
+    .table-container,
+    .table-wrapper {
+      background: $surface !important;
+      border-color: $border !important;
+    }
+
+    table,
+    .data-table,
+    .custom-table,
+    .styled-table,
+    .details-table,
+    .population-table,
+    .village-table,
+    .profile-table,
+    .branch-list,
+    .html-ward-table,
+    .mat-mdc-table,
+    .mat-table {
+      background-color: $surface !important;
+      color: $text !important;
+      border-color: $border !important;
+    }
+
+    thead,
+    .data-table thead,
+    .mat-mdc-header-row,
+    .mat-header-row {
+      background: $surface-2 !important;
+    }
+
+    th,
+    .data-table thead th,
+    .custom-table th,
+    .styled-table th,
+    .details-table th,
+    .population-table th,
+    .profile-table th,
+    .html-ward-table th,
+    .table-th,
+    .mat-mdc-header-cell,
+    .mat-header-cell {
+      background: $surface-2 !important;
+      color: $text !important;
+      // All sides, not just the bottom: bordered tables (Bootstrap
+      // .table-bordered, .table-th/.table-td) draw a full grid and would
+      // otherwise keep their light-mode #dee2e6 rules.
+      border-color: $border !important;
+    }
+
+    td,
+    .data-table td,
+    .custom-table td,
+    .styled-table td,
+    .details-table td,
+    .data-cell,
+    .table-td,
+    .mat-mdc-cell,
+    .mat-cell {
+      color: $text-2 !important;
+      border-color: $border !important;
+    }
+
+    .tableBody tr,
+    tbody tr,
+    .mat-mdc-row,
+    .mat-row {
+      background: $surface !important;
+    }
+
+    .tableBody tr.odd,
+    tbody tr.odd,
+    .odd {
+      background: $surface !important;
+    }
+
+    .tableBody tr.even,
+    tbody tr.even,
+    .even {
+      background: #14263a !important;
+    }
+
+    .tableBody tr:hover,
+    tbody tr:hover,
+    .mat-mdc-row:hover {
+      background: $surface-3 !important;
+    }
+
+    .tableBody tr:hover td {
+      color: $text !important;
+    }
+
+    // Header cell chrome
+    .headerLabel,
+    .headerText,
+    .header .label {
+      color: $text !important;
+    }
+
+    .sort-arrow {
+      color: $accent !important;
+    }
+
+    .filter-icon {
+      color: $muted !important;
+
+      &:hover {
+        color: $accent !important;
+      }
+    }
+
+    // Row number badge
+    .serial-badge {
+      background: $primary-soft !important;
+      color: #9dc3ff !important;
+    }
+
+    .serial-number,
+    .serial-column {
+      color: $text-2 !important;
+    }
+
+    // Row action icons
+    .table-action-button mat-icon,
+    .table-action-button-svg mat-icon,
+    .view-icon,
+    .edit-icon,
+    .status-icon,
+    .freeze-icon,
+    .publish-icon,
+    .close-icon {
+      color: $text-2 !important;
+    }
+
+    .view-icon {
+      color: $link !important;
+    }
+
+    .edit-icon {
+      color: $accent !important;
+    }
+
+    .delete-icon {
+      color: $danger !important;
+    }
+
+    .table-action-button:disabled mat-icon,
+    .table-action-button-svg:disabled mat-icon {
+      color: $disabled !important;
+      opacity: 0.6;
+    }
+
+    .file-link {
+      color: $link !important;
+    }
+
+    // Empty / loading state
+    .no-data-cell,
+    .no-data-wrapper,
+    .no-data-found {
+      background-color: transparent !important;
+      color: $muted !important;
+    }
+
+    .spinner {
+      border-color: $border !important;
+      border-top-color: $accent !important;
+    }
+  }
+
+  // ===========================================================================
+  //  6. GRID TOOLBAR, ACTION BUTTONS, PAGINATION
+  // ===========================================================================
+
+  #{$root} {
+    // --- search box ---------------------------------------------------------
+    .search-wrapper,
+    .search-field,
+    .custom-search-box {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+
+      input {
+        background: transparent !important;
+        color: $text !important;
+        border: none !important;
+
+        &::placeholder {
+          color: $muted !important;
+        }
+      }
+
+      .search-icon,
+      mat-icon {
+        color: $muted !important;
+      }
+
+      &:focus-within {
+        border-color: $accent !important;
+        box-shadow: 0 0 0 2px rgba(245, 165, 36, 0.2) !important;
+      }
+    }
+
+    // --- toolbar buttons ----------------------------------------------------
+    // Solid brand buttons keep their fill; outlined ones get a dark fill.
+    .clear-filter-button,
+    .seatVacant,
+    .export-button,
+    .filter-button,
+    .btn-reset-outline,
+    .route-action-button {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+
+      mat-icon,
+      img,
+      span {
+        color: $text !important;
+      }
+
+      img {
+        filter: brightness(0) invert(1);
+        opacity: 0.85;
+      }
+
+      &:hover:not(:disabled) {
+        background: $surface-3 !important;
+        border-color: $accent !important;
+      }
+
+      &:disabled {
+        color: $disabled !important;
+        border-color: $border !important;
+        opacity: 0.55;
+
+        mat-icon {
+          color: $disabled !important;
+        }
+      }
+    }
+
+    .add-button {
+      background: $primary !important;
+      border-color: $primary !important;
+      color: #ffffff !important;
+
+      mat-icon,
+      span {
+        color: #ffffff !important;
+      }
+
+      &:hover {
+        background: #2563eb !important;
+      }
+    }
+
+    // --- table / card view toggle ------------------------------------------
+    .view-toggle-group {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+
+      .mat-button-toggle {
+        background: transparent !important;
+        color: $text-2 !important;
+        border-color: $border !important;
+      }
+
+      .mat-button-toggle-checked {
+        background: $accent !important;
+        color: #10233a !important;
+
+        mat-icon,
+        .mat-button-toggle-label-content,
+        .mat-button-toggle-button {
+          color: #10233a !important;
+        }
+      }
+
+      mat-icon {
+        color: inherit !important;
+      }
+    }
+
+    // --- footer / pagination -----------------------------------------------
+    .custom-footer,
+    .grid-footer {
+      background: transparent !important;
+      color: $text-2 !important;
+    }
+
+    .footer-left,
+    .show-label,
+    .entries-label,
+    .page-size-wrapper label {
+      color: $text-2 !important;
+    }
+
+    .page-size-wrapper select,
+    .rows-dropdown,
+    .page-size select {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+    }
+
+    .page-btn,
+    .page-number,
+    .pagination-button {
+      background: transparent !important;
+      border-color: transparent !important;
+      color: $text-2 !important;
+
+      &:hover:not(.dots) {
+        background: $surface-3 !important;
+        color: $text !important;
+      }
+    }
+
+    .page-btn.active,
+    .page-number.active {
+      background: $accent !important;
+      border-color: $accent !important;
+      color: #10233a !important;
+      font-weight: 700 !important;
+    }
+
+    .pagination-arrow {
+      background-color: $surface-2 !important;
+
+      mat-icon {
+        color: $text-2 !important;
+      }
+
+      &:disabled {
+        background: $surface-2 !important;
+        opacity: 0.45;
+      }
+
+      &:hover:not(:disabled) {
+        background-color: $surface-3 !important;
+      }
+    }
+
+    // --- inline on/off toggle ----------------------------------------------
+    .on-off-toggle {
+      .track {
+        background: $surface-3 !important;
+        border-color: $border-strong !important;
+      }
+
+      .thumb {
+        background: #dbe6f3 !important;
+      }
+
+      .label {
+        color: $text-2 !important;
+      }
+
+      input:checked + .track {
+        background: $success !important;
+
+        .label-on {
+          color: #0d2417 !important;
+        }
+      }
+    }
+  }
+
+  // ===========================================================================
+  //  7. NATIVE FORM CONTROLS
+  // ===========================================================================
+
+  #{$root} {
+    // Listing the types explicitly (rather than `input:not([type=..])`) keeps
+    // this rule at the same specificity as the per-widget overrides that follow,
+    // so those can win on source order instead of needing a longer :not() chain.
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="search"],
+    input[type="url"],
+    input[type="date"],
+    input[type="time"],
+    input[type="datetime-local"],
+    input[type="month"],
+    input[type="week"],
+    input:not([type]),
+    textarea,
+    select,
+    .form-control,
+    .form-select,
+    .fin-year-html,
+    .otp-input,
+    .otp-box {
+      background-color: $surface-2 !important;
+      color: $text !important;
+      border-color: $border-strong !important;
+      caret-color: $accent;
+
+      &::placeholder {
+        color: $muted !important;
+        opacity: 1;
+      }
+
+      &:focus {
+        border-color: $accent !important;
+        outline: none !important;
+      }
+
+      &:disabled,
+      &[readonly] {
+        background-color: #16273a !important;
+        color: $disabled !important;
+      }
+    }
+
+    // An input that lives inside a container which already draws the box (a
+    // Material outlined field, a search wrapper, a select panel's search row)
+    // must stay transparent and border-less, otherwise you get a box drawn
+    // inside a box and a stray line across the control.
+    .mat-mdc-form-field input,
+    .mat-mdc-form-field textarea,
+    .mat-mdc-form-field select,
+    .mat-mdc-input-element,
+    .mdc-text-field__input,
+    .custom-search-box input,
+    .search-wrapper input,
+    .search-field input,
+    .search-box input {
+      background-color: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    // Native dropdown list items (rendered by the OS, but colour-scheme aware).
+    select option,
+    .fin-year-html option {
+      background: $overlay !important;
+      color: $text !important;
+    }
+
+    .fy-select-container::after {
+      color: $muted !important;
+    }
+
+    input[type="file"] {
+      background-color: $surface-2 !important;
+      color: $text !important;
+      border-color: $border-strong !important;
+
+      &::file-selector-button {
+        background: $surface-3 !important;
+        color: $text !important;
+        border: 1px solid $border-strong !important;
+      }
+    }
+
+    .custom-file-input-wrapper input[type="file"] {
+      border-color: $border-strong !important;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+      accent-color: $accent;
+    }
+
+    .char-count {
+      color: $muted !important;
+    }
+
+    // Form action buttons keep their brand gradients (already light-on-dark),
+    // only the neutral ones need help.
+    .custom-back-button:not([class*="gradient"]) {
+      color: #ffffff !important;
+    }
+
+    .password-rule,
+    .password-rules,
+    .strength-header,
+    .strength-label-inline,
+    .strength-value {
+      color: $text-2 !important;
+    }
+
+    .strength-bar,
+    .strength-bars-short {
+      background-color: $surface-3 !important;
+    }
+
+    // .captcha-row is only a layout row (no plate in light mode), so it is
+    // deliberately left alone — painting it would add a band.
+    .captcha-box-container,
+    .captcha-img {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Boxed control groups (Add Role dialog: Level, Method, Action).
+    //  These are white panels holding radio buttons; without this they stay
+    //  white with dark-on-dark labels.
+    // -------------------------------------------------------------------------
+    .role-type-section,
+    .type-radio-box,
+    .method-radio-box,
+    .permission-action,
+    .radio-group-material,
+    .radio-group,
+    .checkbox-align,
+    .button-group,
+    .step-group,
+    .dual-list,
+    .dual-list select,
+    .photo-box,
+    .photo-box2,
+    .field-card,
+    .notice-box,
+    .notice-content,
+    .results-section,
+    .designation-textarea,
+    .search-input-field,
+    .filter-accordion {
+      background: $surface-2 !important;
+      border-color: $border !important;
+      color: $text !important;
+    }
+
+    .role-form-label,
+    .radio-section-label,
+    .permission-header,
+    .custom-field-label,
+    .form-value,
+    .section-header,
+    .step-text,
+    .step-label,
+    .tab-desc,
+    .tab-title,
+    .agency-header-text,
+    .help-title-text,
+    .breadcrumb-block,
+    .view-mode-input,
+    .file-label-preview,
+    .upload-text,
+    .search-label,
+    .coverage-table,
+    .details-value,
+    .dialog-body,
+    .header-text,
+    .form-header-title,
+    .dialog-title {
+      color: $text !important;
+    }
+
+    // Neutral icon-only buttons that sit on a white plate in light mode.
+    .action-icon-button,
+    .add-btn,
+    .remove-btn,
+    .transfer-btn,
+    .transfer-back,
+    .nav-btn,
+    .default-button,
+    .clear-search,
+    .download-btn,
+    .preview-btn,
+    .btn-contact-support,
+    .btn-inside-choose,
+    .btn-reset-outline,
+    .menu-footer-btn {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+
+      mat-icon {
+        color: inherit !important;
+      }
+
+      &:hover:not(:disabled) {
+        background: $surface-3 !important;
+      }
+
+      &:disabled {
+        color: $disabled !important;
+        opacity: 0.55;
+      }
+    }
+
+    // Keep the semantic accent on the "add row" control.
+    .action-icon-button,
+    .add-btn {
+      border-color: $success !important;
+      color: $success !important;
+    }
+
+    .remove-btn {
+      border-color: $danger !important;
+      color: $danger !important;
+    }
+  }
+
+  // ===========================================================================
+  //  7b. FORM ACTION BARS
+  //      Several forms give the sticky action row a cream background. Painting
+  //      it with the card colour makes it blend into the form container the way
+  //      it does in light mode, instead of adding a band that was never there.
+  // ===========================================================================
+
+  #{$root} {
+    .form-actions,
+    .bottom-actions,
+    .form-footer,
+    .button-container,
+    .button-row,
+    .navigation-buttons {
+      background-color: $surface !important;
+      border-color: $border !important;
+    }
+
+    // Footers that have their own plate in light mode keep a raised tone.
+    .menu-popup-footer,
+    .application-modal-footer,
+    .privilege-modal-footer {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+    }
+
+    // ...and those that are transparent in light mode stay transparent, so no
+    // band appears between the content and the buttons.
+    .popup-footer,
+    .role-form-actions {
+      background-color: transparent !important;
+      border-color: $border !important;
+    }
+  }
+
+  // ===========================================================================
+  //  8. ANGULAR MATERIAL
+  //     `color-scheme: dark` on <html> already flips the M3 system tokens;
+  //     these rules cover the places the app overrode them by hand.
+  // ===========================================================================
+
+  #{$root} {
+    // --- form field ---------------------------------------------------------
+    .mat-mdc-form-field {
+      color: $text !important;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Every field in this app uses appearance="outline". In an outlined field
+    //  the notched outline draws the box and covers .mat-mdc-form-field-flex
+    //  exactly, while .mat-mdc-text-field-wrapper is a taller shell that
+    //  components resize by hand (`height: 3rem !important; align-items:center`).
+    //
+    //  So exactly ONE element may carry the fill: the flex row. Filling the
+    //  wrapper (or letting a component's white fill survive) paints a band above
+    //  and below the outline — the stray "shadow" strip under every input and
+    //  dropdown. In light mode that band is invisible because the page, the card
+    //  and the field are all white; in dark mode it shows.
+    // -------------------------------------------------------------------------
+    .mat-mdc-form-field,
+    .mat-mdc-text-field-wrapper,
+    .mat-mdc-form-field-subscript-wrapper,
+    .mat-mdc-form-field-infix,
+    .mat-mdc-form-field-focus-overlay,
+    .mdc-text-field__ripple,
+    .mdc-line-ripple {
+      background-color: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+
+    .mat-mdc-form-field-flex {
+      background-color: $surface-2 !important;
+      border-radius: inherit;
+    }
+
+    // Filled fields (not used today) still fill the wrapper.
+    .mdc-text-field--filled.mat-mdc-text-field-wrapper {
+      background-color: $surface-2 !important;
+    }
+
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: $border-strong !important;
+    }
+
+    .mat-mdc-form-field.mat-focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: $accent !important;
+      }
+    }
+
+    .mat-mdc-form-field-label,
+    .mdc-floating-label,
+    .mat-mdc-floating-label,
+    .mat-mdc-form-field-infix,
+    .mat-mdc-select-value,
+    .mat-mdc-select-value-text,
+    .mat-mdc-select-min-line,
+    .mat-mdc-input-element,
+    .mat-input-element,
+    .mdc-text-field__input {
+      color: $text !important;
+    }
+
+    .mat-mdc-form-field.mat-focused .mdc-floating-label,
+    .mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+      color: $accent !important;
+    }
+
+    .mat-mdc-input-element::placeholder,
+    .mdc-text-field__input::placeholder {
+      color: $muted !important;
+    }
+
+    .mat-mdc-form-field-hint,
+    .mat-mdc-form-field-subscript-wrapper,
+    .mat-mdc-form-field-icon-suffix,
+    .mat-mdc-form-field-icon-prefix,
+    .mat-mdc-select-arrow {
+      color: $muted !important;
+    }
+
+    .mat-mdc-form-field-error,
+    .mat-mdc-form-field.mat-form-field-invalid .mdc-floating-label {
+      color: $danger !important;
+    }
+
+    .mat-mdc-form-field-disabled {
+      .mat-mdc-input-element,
+      .mat-mdc-select-value-text,
+      .mdc-floating-label {
+        color: $disabled !important;
+      }
+    }
+
+    // --- select / autocomplete / menu panels (in the overlay container) -----
+    .mat-mdc-select-panel,
+    .mat-mdc-autocomplete-panel,
+    .mat-mdc-menu-panel,
+    .mat-menu-panel,
+    .cdk-overlay-pane .mat-mdc-select-panel,
+    .cdk-overlay-pane .mat-mdc-autocomplete-panel {
+      background: $overlay !important;
+      color: $text !important;
+      border: 1px solid $border !important;
+      box-shadow: $shadow-lg !important;
+      backdrop-filter: none !important;
+    }
+
+    // top-header.component.scss ships `::ng-deep .mat-mdc-menu-content
+    // { background: #ffffff }`. ::ng-deep strips the component scope, so that
+    // one rule paints the inner surface of EVERY mat-menu in the app white —
+    // the panel behind it is dark, but the content on top of it is not.
+    // Making the content transparent lets the panel colour show through.
+    .mat-mdc-menu-content {
+      background: transparent !important;
+    }
+
+    .mat-mdc-option,
+    .mat-mdc-menu-item,
+    .mat-mdc-option .mdc-list-item__primary-text,
+    .mat-mdc-menu-item .mat-mdc-menu-item-text,
+    .mat-mdc-menu-item mat-icon,
+    .mat-mdc-optgroup-label {
+      background: transparent !important;
+      color: $text !important;
+    }
+
+    .mat-mdc-option:hover:not(.mdc-list-item--disabled),
+    .mat-mdc-option.mat-mdc-option-active,
+    .mat-mdc-menu-item:hover:not([disabled]),
+    .mat-mdc-menu-item.cdk-program-focused,
+    .mat-mdc-menu-item.cdk-keyboard-focused {
+      background: $surface-3 !important;
+    }
+
+    .mat-mdc-option.mdc-list-item--selected:not(.mat-mdc-option-multiple) {
+      background: $primary-soft !important;
+
+      .mdc-list-item__primary-text {
+        color: #9dc3ff !important;
+      }
+    }
+
+    .mat-mdc-option.mdc-list-item--disabled,
+    .mat-mdc-menu-item[disabled] {
+      color: $disabled !important;
+      opacity: 0.6;
+    }
+
+    // -------------------------------------------------------------------------
+    //  The shared <app-mat-select> renders a STICKY SEARCH ROW pinned to the top
+    //  of the panel, hard-coded to `background: #fff !important`. Left alone it
+    //  is a bright white bar across the top of every searchable dropdown in the
+    //  app, which is the single most visible dropdown defect in dark mode.
+    // -------------------------------------------------------------------------
+    .search-option,
+    .mat-mdc-option.search-option,
+    .mat-mdc-select-panel .search-option {
+      background: $overlay !important;
+      border-bottom: 1px solid $border !important;
+
+      &:hover,
+      &.mat-mdc-option-active {
+        background: $overlay !important;
+      }
+    }
+
+    .custom-search-box {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+
+      input {
+        color: $text !important;
+
+        &::placeholder {
+          color: $muted !important;
+        }
+      }
+
+      .search-icon,
+      .clear-icon,
+      mat-icon {
+        color: $muted !important;
+      }
+    }
+
+    // A placeholder should read as a prompt, not as a chosen value.
+    .mat-mdc-select-placeholder,
+    .mat-mdc-select-value .mat-mdc-select-placeholder {
+      color: $muted !important;
+    }
+
+    .mat-mdc-select-trigger,
+    .mat-mdc-select-value-text,
+    .mat-mdc-select-min-line {
+      color: $text !important;
+    }
+
+    .mat-mdc-select-disabled .mat-mdc-select-value,
+    .mat-mdc-select-disabled .mat-mdc-select-placeholder {
+      color: $disabled !important;
+    }
+
+    // Option text that components colour by hand.
+    .url-option-name,
+    .option-label,
+    .mat-mdc-option .mdc-list-item__primary-text span {
+      color: inherit !important;
+    }
+
+    // Non-Material dropdowns. (.rows-dropdown-wrapper is only the layout row
+    // around the control, so it stays unpainted.)
+    .category-dropdown,
+    .dropdown,
+    .dropdown-menu,
+    .dropdown-section,
+    .rows-dropdown {
+      background: $overlay !important;
+      border-color: $border !important;
+      color: $text !important;
+      box-shadow: $shadow-lg !important;
+    }
+
+    .dropdown-item,
+    .category-item {
+      color: $text !important;
+
+      &:hover,
+      &:focus {
+        background: $surface-3 !important;
+        color: $text !important;
+      }
+    }
+
+    .dropdown-icon,
+    .select-arrow {
+      color: $muted !important;
+    }
+
+    // Top strip language picker.
+    .top-select {
+      background: transparent !important;
+      color: var(--white) !important;
+      border-color: $border-soft !important;
+
+      option {
+        background: $overlay !important;
+        color: $text !important;
+      }
+    }
+
+    // The header's own theme menu hard-codes a white panel.
+    .theme-menu-panel.mat-mdc-menu-panel,
+    .mobile-more-menu-panel.mat-mdc-menu-panel {
+      background: $overlay !important;
+
+      .mat-mdc-menu-item {
+        color: $text !important;
+
+        mat-icon {
+          color: $text-2 !important;
+        }
+
+        &:hover {
+          background: $surface-3 !important;
+        }
+      }
+    }
+
+    // Theme picker entries name their colour in the brand's *dark* shade, which
+    // disappears against the dark panel. Keep the hue, lift the lightness.
+    @each $name,
+      $hue
+        in (
+          "blue": #7cb3f5,
+          "red": #f78ba3,
+          "purple": #cf9ae4,
+          "orange": #f0a06a,
+          "green": #7bd069
+        )
+    {
+      .theme-label.#{$name}-theme {
+        color: $hue !important;
+      }
+
+      .theme-color-indicator.#{$name}-theme {
+        background-color: $hue !important;
+      }
+    }
+
+    // --- dialogs ------------------------------------------------------------
+    .mat-mdc-dialog-container,
+    .mat-dialog-container,
+    .mat-mdc-dialog-surface,
+    .mdc-dialog__surface,
+    .cdk-overlay-pane .mat-mdc-dialog-surface {
+      background-color: $overlay !important;
+      color: $text !important;
+      box-shadow: $shadow-lg !important;
+    }
+
+    .mat-mdc-dialog-title,
+    .mdc-dialog__title,
+    .styled-title,
+    .modal-title {
+      color: $text !important;
+    }
+
+    .mat-mdc-dialog-content,
+    .mdc-dialog__content,
+    .mat-mdc-dialog-actions {
+      background-color: transparent !important;
+      color: $text-2 !important;
+      border-color: $border !important;
+    }
+
+    .cdk-overlay-dark-backdrop,
+    .custom-backdrop {
+      background: rgba(4, 10, 18, 0.72) !important;
+    }
+
+    // Dialog close buttons ship a pale-pink plate with a red glyph. Recolouring
+    // only the glyph left near-white on near-white, so tint the plate too.
+    .modal-close-icon,
+    .popup-close-icon {
+      background: $danger-soft !important;
+      color: $danger !important;
+      border-color: rgba(248, 113, 113, 0.35) !important;
+
+      mat-icon {
+        color: $danger !important;
+      }
+
+      &:hover {
+        background: rgba(248, 113, 113, 0.28) !important;
+      }
+    }
+
+    .close-button,
+    .close-btn,
+    .modal-close-icon-plain {
+      color: $text !important;
+    }
+
+    // Read-only detail plates inside view popups (generic-view) and the
+    // label column of the key/value dialog tables.
+    .detail-pair {
+      background-color: $surface-2 !important;
+
+      &:hover {
+        background-color: $surface-3 !important;
+      }
+
+      .detail-label {
+        color: $muted !important;
+      }
+
+      .detail-value {
+        color: $text !important;
+      }
+    }
+
+    .details-row {
+      border-color: $border !important;
+    }
+
+    .details-label {
+      background: $surface-3 !important;
+      color: $text !important;
+    }
+
+    .details-value {
+      background: transparent !important;
+      color: $text !important;
+    }
+
+    // --- tooltip ------------------------------------------------------------
+    .mat-mdc-tooltip .mdc-tooltip__surface,
+    .mdc-tooltip__surface,
+    .mat-tooltip {
+      background-color: #33506f !important;
+      color: $text !important;
+    }
+
+    // --- tabs ---------------------------------------------------------------
+    .mat-mdc-tab-group,
+    .mat-mdc-tab-header,
+    .mat-mdc-tab-nav-bar {
+      background: transparent !important;
+      border-color: $border !important;
+    }
+
+    // basic-profile / view-basic-profile / group ship a global
+    // `::ng-deep .mat-mdc-tab { background-color: #f0f0f0 !important }`.
+    .mat-mdc-tab,
+    .mat-mdc-tab-link {
+      background-color: $surface-2 !important;
+
+      &:hover {
+        background-color: $surface-3 !important;
+      }
+    }
+
+    .mat-mdc-tab .mdc-tab__text-label,
+    .mat-mdc-tab-link .mdc-tab__text-label {
+      color: $text-2 !important;
+    }
+
+    .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label,
+    .mat-mdc-tab-link.mdc-tab--active .mdc-tab__text-label {
+      color: $accent !important;
+    }
+
+    .mdc-tab-indicator__content--underline {
+      border-color: $accent !important;
+    }
+
+    .mat-mdc-tab-body-content {
+      background: transparent !important;
+      color: $text !important;
+    }
+
+    // --- expansion panel / accordion (outside the sidebar) ------------------
+    .mat-sidenav-content .mat-expansion-panel,
+    .mat-drawer-content .mat-expansion-panel,
+    .cdk-overlay-pane .mat-expansion-panel {
+      background: $surface !important;
+      color: $text !important;
+      border: 1px solid $border !important;
+
+      .mat-expansion-panel-header,
+      .mat-expansion-panel-header-title,
+      .mat-expansion-panel-header-description,
+      .mat-expansion-indicator::after {
+        color: $text !important;
+      }
+
+      .mat-expansion-panel-header:hover {
+        background: $surface-2 !important;
+      }
+    }
+
+    // --- checkbox / radio / slide toggle ------------------------------------
+    .mat-mdc-checkbox .mdc-form-field,
+    .mat-mdc-checkbox label,
+    .mat-mdc-radio-button label,
+    .mdc-label,
+    .mat-internal-form-field > label {
+      color: $text !important;
+    }
+
+    .mdc-checkbox__background {
+      border-color: $border-strong !important;
+    }
+
+    .mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background {
+      background-color: $accent !important;
+      border-color: $accent !important;
+    }
+
+    .mdc-checkbox__checkmark {
+      color: #10233a !important;
+    }
+
+    .mat-mdc-radio-button .mdc-radio__outer-circle {
+      border-color: $border-strong !important;
+    }
+
+    .mat-mdc-radio-button.mat-mdc-radio-checked {
+      .mdc-radio__outer-circle,
+      .mdc-radio__inner-circle {
+        border-color: $accent !important;
+      }
+    }
+
+    .mat-mdc-slide-toggle .mdc-switch__track {
+      background: $surface-3 !important;
+    }
+
+    .mat-mdc-checkbox-disabled label,
+    .keep-label-color.mat-mdc-checkbox-disabled .mdc-label {
+      color: $text-2 !important;
+    }
+
+    // --- paginator ----------------------------------------------------------
+    .mat-mdc-paginator {
+      background: transparent !important;
+      color: $text-2 !important;
+
+      .mat-mdc-icon-button {
+        color: $text-2 !important;
+      }
+    }
+
+    // --- toolbar / sidenav / list -------------------------------------------
+    .mat-toolbar {
+      background: $surface-2 !important;
+      color: $text !important;
+    }
+
+    .mat-mdc-list-item,
+    .mdc-list-item__primary-text,
+    .mat-mdc-list-item-title {
+      color: $text !important;
+    }
+
+    // --- datepicker ---------------------------------------------------------
+    .mat-datepicker-content,
+    .mat-calendar {
+      background-color: $overlay !important;
+      color: $text !important;
+      box-shadow: $shadow-lg !important;
+    }
+
+    .mat-calendar-body-cell-content,
+    .mat-calendar-table-header,
+    .mat-calendar-table-header th,
+    .mat-calendar-period-button,
+    .mat-calendar-arrow,
+    .mat-calendar-previous-button,
+    .mat-calendar-next-button {
+      color: $text !important;
+    }
+
+    .mat-calendar-arrow {
+      fill: $text !important;
+    }
+
+    .mat-calendar-body-cell-content:hover {
+      background-color: $surface-3 !important;
+    }
+
+    .mat-calendar-body-selected {
+      background-color: $accent !important;
+      color: #10233a !important;
+    }
+
+    .mat-calendar-body-today:not(.mat-calendar-body-selected) {
+      border-color: $accent !important;
+    }
+
+    .mat-calendar-body-disabled > .mat-calendar-body-cell-content {
+      color: $disabled !important;
+    }
+
+    // --- progress / chips / badges ------------------------------------------
+    .mat-mdc-progress-bar,
+    .mat-mdc-progress-spinner {
+      --mdc-linear-progress-track-color: #{$surface-3};
+    }
+
+    .mat-mdc-chip,
+    .mat-mdc-standard-chip {
+      background-color: $surface-3 !important;
+      color: $text !important;
+    }
+
+    // --- icon buttons -------------------------------------------------------
+    .mat-mdc-icon-button:not([class*="icon-color"]) {
+      color: $text-2 !important;
+    }
+
+    // --- stepper ------------------------------------------------------------
+    .mat-step-label,
+    .mat-step-label-selected,
+    .step-label,
+    .step-item {
+      color: $text !important;
+    }
+
+    .step-group .circle {
+      background: $surface-3 !important;
+      color: $text !important;
+      border-color: $border-strong !important;
+    }
+  }
+
+  // ===========================================================================
+  //  9. BOOTSTRAP  (bootstrap.min.css is loaded globally in index.html)
+  // ===========================================================================
+
+  #{$root} {
+    --bs-body-bg: #{$bg};
+    --bs-body-color: #{$text};
+    --bs-border-color: #{$border};
+    --bs-heading-color: #{$text};
+    --bs-emphasis-color: #{$text};
+    --bs-secondary-color: #{$text-2};
+    --bs-tertiary-bg: #{$surface-2};
+
+    .bg-white,
+    .bg-light {
+      background-color: $surface !important;
+    }
+
+    .text-dark,
+    .text-body,
+    .text-black {
+      color: $text !important;
+    }
+
+    .text-muted,
+    .text-secondary {
+      color: $muted !important;
+    }
+
+    .border,
+    .border-top,
+    .border-bottom,
+    .border-start,
+    .border-end {
+      border-color: $border !important;
+    }
+
+    .modal-content,
+    .dropdown-menu,
+    .list-group-item,
+    .accordion-item,
+    .accordion-button {
+      background-color: $overlay !important;
+      color: $text !important;
+      border-color: $border !important;
+    }
+
+    .dropdown-item {
+      color: $text !important;
+
+      &:hover,
+      &:focus {
+        background-color: $surface-3 !important;
+        color: $text !important;
+      }
+    }
+
+    .table {
+      --bs-table-bg: #{$surface};
+      --bs-table-color: #{$text};
+      --bs-table-border-color: #{$border};
+      --bs-table-striped-bg: #14263a;
+      --bs-table-striped-color: #{$text};
+      --bs-table-hover-bg: #{$surface-3};
+      --bs-table-hover-color: #{$text};
+    }
+
+    .btn-light,
+    .btn-outline-secondary {
+      background-color: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+    }
+  }
+
+  // ===========================================================================
+  //  10. APP DIALOGS, POPUPS & OVERLAYS
+  // ===========================================================================
+
+  #{$root} {
+    .popup-overlay,
+    .privilege-overlay,
+    .application-overlay,
+    .image-preview-modal {
+      background: rgba(4, 10, 18, 0.72) !important;
+    }
+
+    .popup-card,
+    .privilege-modal,
+    .frontend-privilege-modal,
+    .application-modal,
+    .role-modal,
+    .menu-popup,
+    .column-filter-popup,
+    .category-dropdown,
+    .dropdown,
+    .dropdown-section {
+      background: $overlay !important;
+      border-color: $border !important;
+      color: $text !important;
+      box-shadow: $shadow-lg !important;
+    }
+
+    .popup-body,
+    .menu-popup-content,
+    .application-form-content {
+      background: $overlay !important;
+      color: $text !important;
+    }
+
+    // NB: every other action bar (.form-actions, .bottom-actions, .popup-footer,
+    // .role-form-actions) is handled in section 7b, which mirrors whether the
+    // bar has a plate of its own in light mode. .menu-popup-footer is the one
+    // that genuinely does.
+    .menu-popup-footer {
+      background: $surface-2 !important;
+      border-color: $border !important;
+    }
+
+    .menu-tabs,
+    .menu-tab,
+    .tab-label {
+      background: $surface-2 !important;
+      color: $text-2 !important;
+      border-color: $border !important;
+
+      &.active {
+        background: $surface-3 !important;
+        color: $accent !important;
+      }
+    }
+
+    .menu-item,
+    .category-item,
+    .category-menu-list {
+      background: transparent !important;
+      color: $text !important;
+
+      &:hover {
+        background: $surface-3 !important;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    //  "All Menu's" module picker (header Menu button).
+    //  This popup ships a full light palette, including a per-category tinted
+    //  header, so every layer needs an explicit dark counterpart or the module
+    //  names render dark-on-dark.
+    // -------------------------------------------------------------------------
+    .menu-popup {
+      background: $bg !important;
+      border-color: $border !important;
+    }
+
+    .menu-popup-header {
+      background: $surface !important;
+      border-bottom-color: $border !important;
+    }
+
+    .menu-header-icon {
+      background: $primary-soft !important;
+
+      mat-icon {
+        color: #9dc3ff !important;
+      }
+    }
+
+    .header-title,
+    .select-all-wrapper,
+    .category-name,
+    .menu-item-name,
+    .submenu-name,
+    .no-menu-title {
+      color: $text !important;
+    }
+
+    .header-subtitle,
+    .menu-item-description,
+    .category-count,
+    .tab-count {
+      color: $muted !important;
+    }
+
+    .total-count {
+      background: $primary-soft !important;
+      color: #9dc3ff !important;
+    }
+
+    .close-btn {
+      background: $surface-3 !important;
+      color: $text-2 !important;
+
+      &:hover {
+        background: $border-strong !important;
+      }
+    }
+
+    .menu-tabs {
+      background: $surface !important;
+      border-color: $border !important;
+    }
+
+    .menu-tab {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text-2 !important;
+
+      &:hover {
+        background: $surface-3 !important;
+        border-color: $border-strong !important;
+        color: $text !important;
+      }
+
+      &.active {
+        background: $accent !important;
+        border-color: $accent !important;
+        color: #10233a !important;
+      }
+    }
+
+    .menu-popup-content {
+      background: $bg !important;
+    }
+
+    .category-card {
+      background: $surface !important;
+      border-color: $border !important;
+    }
+
+    // Category header + icon: keep each category's hue, but as a dark tint with
+    // a light foreground rather than the light-mode pastel plate.
+    .category-header {
+      background: $surface-2 !important;
+      border-bottom-color: $border !important;
+    }
+
+    .category-icon,
+    .menu-item-icon {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: $text-2 !important;
+    }
+
+    @each $name,
+      $hue
+        in (
+          profile: #7cb3f5,
+          accounting: #8f95f0,
+          planning: #f5a524,
+          reporting: #4ade80,
+          other: #9fb0c6
+        )
+    {
+      .#{$name}-icon {
+        .category-header {
+          background: rgba($hue, 0.14) !important;
+          border-bottom-color: rgba($hue, 0.28) !important;
+        }
+
+        .category-icon,
+        .menu-item-icon {
+          background: rgba($hue, 0.18) !important;
+          color: $hue !important;
+        }
+
+        .category-name,
+        .category-count {
+          color: $hue !important;
+        }
+      }
+    }
+
+    .category-menu-list {
+      background: $surface !important;
+    }
+
+    .menu-item:hover {
+      background: $surface-2 !important;
+    }
+
+    .menu-item input[type="checkbox"],
+    .select-all-wrapper input[type="checkbox"] {
+      accent-color: $accent;
+    }
+
+    .no-menu-icon {
+      background: $surface-2 !important;
+      color: $muted !important;
+    }
+
+    .footer-btn {
+      &.reset-btn {
+        background: $surface-2 !important;
+        border-color: $border-strong !important;
+        color: $text !important;
+      }
+
+      &.cancel-btn {
+        background: $surface-2 !important;
+        border-color: $border-strong !important;
+        color: $text !important;
+      }
+
+      &.save-btn {
+        background: #0f7a37 !important;
+        border-color: #0f7a37 !important;
+        color: #ffffff !important;
+      }
+    }
+
+    .selected-category {
+      background-color: $primary-soft !important;
+      color: $text !important;
+    }
+
+    // NB: .employee-details-card is the view popup's own card (it also carries
+    // .popup-card), so it keeps the overlay tone set above — giving it the inset
+    // tone here would flatten it against the detail plates inside it.
+    .detail-bg,
+    .normal-box,
+    .scrollable-box {
+      background-color: $surface-2 !important;
+      color: $text !important;
+      border-color: $border !important;
+    }
+
+    // Hover popup used inside data tables
+    .short-text {
+      color: $text-2 !important;
+    }
+
+    .popup {
+      background: #05101d !important;
+      color: $text !important;
+      border: 1px solid $border !important;
+    }
+
+    .cancel-btn {
+      background: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+
+      &:hover {
+        background: $surface-3 !important;
+      }
+    }
+  }
+
+  // ===========================================================================
+  //  11. ALERTS, TOASTS & SNACKBARS
+  // ===========================================================================
+
+  #{$root} {
+    .alert-icon-wrapper .alert-icon {
+      filter: none;
+    }
+
+    .data-message {
+      color: $text-2 !important;
+    }
+
+    .toast-container,
+    .custom-snackbar,
+    .snackbar-message {
+      background-color: $overlay !important;
+      color: $text !important;
+      border: 1px solid $border !important;
+    }
+
+    .snackbar-close,
+    .toast-container .close-button {
+      color: $text-2 !important;
+    }
+
+    .mat-mdc-snack-bar-container {
+      .mdc-snackbar__surface {
+        background-color: $overlay !important;
+      }
+
+      .mdc-snackbar__label {
+        color: $text !important;
+      }
+    }
+
+    // Status snackbars keep their semantic colour.
+    .mat-mdc-snack-bar-container.success .mdc-snackbar__surface {
+      background-color: #1b5e3f !important;
+    }
+
+    .mat-mdc-snack-bar-container.error .mdc-snackbar__surface {
+      background-color: #7f1d1d !important;
+    }
+
+    .mat-mdc-snack-bar-container.info .mdc-snackbar__surface {
+      background-color: #1e40af !important;
+    }
+
+    .success-snackbar .mat-mdc-snackbar-surface {
+      background: transparent !important;
+    }
+
+    .success-title {
+      color: $success !important;
+    }
+
+    .success-message {
+      color: $text-2 !important;
+    }
+  }
+
+  // ===========================================================================
+  //  11b. REMAINING LIGHT SURFACES
+  //       Everything else the audit found painting a light plate or dark text.
+  //       Grouped by the treatment they need rather than by component.
+  // ===========================================================================
+
+  #{$root} {
+    // Plates that sit on top of a card.
+    .toolbar-search,
+    .titles,
+    .child-card,
+    .child-row,
+    .menu-block,
+    .menu-container,
+    .manage-table-wrapper,
+    .custom-row-card,
+    .agency-bg,
+    .employee-bg,
+    .agency-card,
+    .agency-header-icon,
+    .step-number,
+    .security-content,
+    .security-dots,
+    .otp-container,
+    .password-layout,
+    .logo-item,
+    .inner-container,
+    .details-container,
+    .dialog-header,
+    .form-header,
+    .form-section,
+    .help-panel-content,
+    .alert-popup,
+    .custom-notice-style,
+    .doc-meta,
+    .branch-list,
+    .footer-list,
+    .side-item,
+    .stat-icon,
+    .tab-icon {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+      color: $text !important;
+    }
+
+    // Text that was hard-coded dark.
+    .toolbar-search input,
+    .toolbar-search mat-icon,
+    .filter,
+    .child-line,
+    .card-arrow,
+    .ellipsis,
+    .menu-name,
+    .mopr-name,
+    .record-count-inline,
+    .pagination-dots,
+    .dashboard-text,
+    .first-carousel-text2,
+    .egs-logo-hindi,
+    .egs-logo-eng,
+    .oops-title,
+    .not-found,
+    .forgot-password,
+    .continue-link,
+    .sub-heading,
+    .heading-margin,
+    .strength-header,
+    .strength-label-inline,
+    .password-rule {
+      color: $text !important;
+    }
+
+    .toolbar-search input::placeholder {
+      color: $muted !important;
+    }
+
+    // Header profile dropdown buttons keep their semantic tint, darkened.
+    .btn-update {
+      background: $success-soft !important;
+      border-color: rgba(74, 222, 128, 0.45) !important;
+      color: $success !important;
+
+      &:hover {
+        background: #0f7a37 !important;
+        border-color: #0f7a37 !important;
+        color: #ffffff !important;
+      }
+    }
+
+    .btn-logout {
+      background: $danger-soft !important;
+      border-color: rgba(248, 113, 113, 0.45) !important;
+      color: $danger !important;
+
+      &:hover {
+        background: #8c1b2e !important;
+        border-color: #8c1b2e !important;
+        color: #ffffff !important;
+      }
+    }
+
+    // Top strip icon buttons.
+    .top-icon-btn,
+    .user-icon,
+    .deafult-theme {
+      background: transparent !important;
+      color: var(--white) !important;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+      }
+    }
+
+    // Public site action buttons that ship a white plate.
+    // The :not() list keeps the branded grid-toolbar buttons (styled in
+    // section 6) out of this rule rather than just out-specifying them.
+    .action-button:not(.add-button):not(.export-button):not(
+        .clear-filter-button
+      ):not(.seatVacant),
+    .action-button1,
+    .split-add-btn,
+    .common-button {
+      background-color: $surface-2 !important;
+      border-color: $border-strong !important;
+      color: $text !important;
+    }
+
+    // Alert dialog confirm button: white plate with a green outline.
+    .btn.btn-success,
+    .mat-mdc-dialog-actions .btn-success {
+      background-color: $surface-2 !important;
+      color: $success !important;
+      border-color: $success !important;
+    }
+
+    // Field wrappers that paint themselves white; transparent lets the card
+    // behind show through, which is what they look like in light mode too.
+    .form-field,
+    .form-item,
+    .form-group {
+      background-color: transparent !important;
+    }
+  }
+
+  // ===========================================================================
+  //  11c. GP OVERVIEW DASHBOARD
+  //       The overview page hard-codes near-black label colours (#2B2E33, #222,
+  //       #333, #1C1C1C, #151515) on rows whose plates come from tokens. The
+  //       plates flip automatically; these labels do not, so every row label
+  //       ("Name of Activities", "Started", "Movable", "EBOX Data Mapped?",
+  //       "No Data Available", the Cr unit and the Male/Female figures) has to
+  //       be named explicitly.
+  // ===========================================================================
+
+  #{$root} {
+    .header h1,
+    .card-title,
+    .row-item .label,
+    .row-item .value,
+    .mini-item .icon-label,
+    .mini-item .big-num,
+    .icon-label,
+    .fact-row .label,
+    .fact-row .value,
+    .empty-title,
+    .demo-name,
+    .demo-value,
+    .demo-sub b,
+    .side-item .txt strong,
+    .stat-value,
+    .stat-value .unit {
+      color: $text !important;
+    }
+
+    .stat-sub,
+    .empty-sub,
+    .demo-sub,
+    .side-item .txt span,
+    .breadcrumb .arrow,
+    .manchitra-left span,
+    .manchitra-arrow {
+      color: $muted !important;
+    }
+
+    // Inset rows inside the dashboard cards.
+    .row-item,
+    .mini-item,
+    .fact-row,
+    .demo-item,
+    .scheme-table thead th {
+      background: $surface-2 !important;
+    }
+
+    .empty-icon {
+      border-color: $border-strong !important;
+      color: $muted !important;
+    }
+
+    .stat-icon.doc {
+      background: $surface-3 !important;
+      color: $text-2 !important;
+    }
+
+    .photo-frame {
+      background: $surface-2 !important;
+    }
+
+    .fact-row .value.ok {
+      color: $success !important;
+    }
+
+    // A navy dot is invisible on a navy row; lift it to a readable slate.
+    .dot.navy {
+      background: #8195b0 !important;
+    }
+  }
+
+  // ===========================================================================
+  //  11d. SEMANTIC ACCENTS & LONG TAIL
+  //       Status colours are written in their light-mode (dark) shade, which
+  //       sits at 2:1 or worse on the dark plates. These keep the meaning and
+  //       lift the lightness rather than flattening everything to plain text.
+  // ===========================================================================
+
+  #{$root} {
+    // Success / add / valid
+    .add-icon-color,
+    .valid,
+    .valid-rule,
+    .very-strong,
+    .text-very-strong,
+    .positive,
+    .strength-value.strong {
+      color: $success !important;
+    }
+
+    // Danger / remove / invalid
+    .remove-icon-color,
+    .weak,
+    .text-weak,
+    .negative,
+    .invalid,
+    .red-placeholder,
+    .notice-icon {
+      color: $danger !important;
+    }
+
+    // Warning
+    .active-text,
+    .resend-disabled {
+      color: $warning !important;
+    }
+
+    // Informational links / notes
+    .route-note,
+    .add-rule a,
+    .resend-link,
+    .continue-link,
+    .selected-item {
+      color: $link !important;
+    }
+
+    // Neutral text in the remaining components.
+    .field-heading,
+    .card-footer,
+    .comp-heading,
+    .comp-para,
+    .top-key-header,
+    .report-header,
+    .info-grid,
+    .second-small-card,
+    .panel-header,
+    .filter-checkbox,
+    .security-rule,
+    .password-rules-inline,
+    .tab-icon-village,
+    .tab-icon-health,
+    .tab-icon-infrastructure,
+    .drag-handle-icon,
+    .mat-form-field-label {
+      color: $text !important;
+    }
+
+    // Remaining light plates.
+    .copy-button,
+    .remove-button,
+    .close-icon-btn,
+    .upload-btn,
+    .security-circle,
+    .agency-btn,
+    .employee-btn,
+    .citizen-btn,
+    .citizen-bg,
+    .upload-note-card,
+    .employee-card,
+    .citizen-card,
+    .first-key-card,
+    .second-key-card,
+    .third-key-card,
+    .forth-key-card,
+    .progress-bar,
+    .line,
+    .loading {
+      background-color: $surface-2 !important;
+      border-color: $border !important;
+      color: $text !important;
+    }
+  }
+
+  // ===========================================================================
+  //  12. LOADERS & CHARTS
+  // ===========================================================================
+
+  #{$root} {
+    .custom-loading-container,
+    .loader-overlay {
+      background: transparent !important;
+    }
+
+    .amcharts-legend-div {
+      background: transparent !important;
+    }
+
+    // Charts render their own light labels; keep the plate behind them dark.
+    .chart-container,
+    .chart-wrapper {
+      background: $surface !important;
+    }
+  }
+}

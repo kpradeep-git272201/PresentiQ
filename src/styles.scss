@@ -1,0 +1,543 @@
+@use "@angular/material" as mat;
+@use "./themes/color-themes" as themes;
+@use "./themes/dark-mode" as dark;
+
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: "Noto Sans";
+  font-weight: 300;
+  font-style: normal;
+  overflow-x: hidden;
+  background-color: #e6e6e6;
+}
+
+* {
+  font-family: "Noto Sans";
+  box-sizing: border-box;
+}
+
+.font-open-sans {
+  font-family: var(--font-family);
+}
+
+html {
+  color-scheme: light;
+  @include mat.theme((color: mat.$violet-palette,
+    ));
+}
+
+.mat-tooltip {
+  font-family: "open-sans" !important;
+}
+
+html.dark-mode {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+:root {
+  display: block;
+
+  // ---- SIDEBAR-ONLY TOKENS ----
+  // NB: the colour of the sidebar itself (--outer-sidebar-bg, --sidebar-panel-bg,
+  // --theme-bg, --menu-bg-color, --accent, --accent-soft) is owned by
+  // themes/_color-themes.scss, which re-declares it per colourway. Only the
+  // theme-independent tokens live here.
+  --sidebar-text-primary: #ffffff;
+  --sidebar-text-muted: #a9b0c4;
+  --text-faint: #7b849c;
+  --divider: rgba(255, 255, 255, 0.08);
+  --sidenav-content-bg: #fffdf9;
+  --toolbar-bg: #f3f4f6;
+  --table-header-bg: #f3f4f6;
+  --white: #FFFFFF;
+
+  // ---- GENERAL (LIGHT THEME) TOKENS ----
+  --bg: #fffdf880;
+  --card-bg: #ffffff;
+  --card-inner: #f2f2f0;
+  --green-dark: #1f5f4e;
+  --green-text: #2e7d5b;
+  --text-primary: #ffffff;
+  --text-secondary: #6b6f76;
+  --text-muted: #8a8d93;
+  --blue: #2f6fe4;
+  --blue-soft: #e7eefc;
+  --green-soft: #e4f6ec;
+  --orange: #e8823a;
+  --orange-soft: #fcead9;
+  --red: #e14b4b;
+  --navy: #10203b;
+  --border: #e9e8e4;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(20, 20, 20, 0.04);
+  --font: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+
+  // --primary-color is themed (see themes/_color-themes.scss).
+  --secondary-color: #9d0054;
+  --primary-font-color: #ffffff;
+  --over-layer-color: rgba(190, 186, 186, 0.8);
+  --rem-to-px: 10px;
+  --overdue-bg-color: #ff5151;
+  --incomplete-bg-color: #ff9800;
+  --upcoming-bg-color: #d5b60a;
+  --incomplete-badge-bg-color: #f57c00;
+  --overdue-badge-bg-color: #e53935;
+  --upcoming-badge-bg-color: #a6860a;
+  --overdue-badge-txt-color: #000000;
+  --incomplete-badge-txt-color: #000000;
+  --upcoming-badge-txt-color: #000000;
+  --back-color: #000000;
+  --my-theme-bg: #2c3e50;
+  --sub-header-bg: #d6d6d6;
+  --sub-header-border: #d6d6d6;
+  --main-header-bg: #ffffff;
+  --container-bg: #FFFFFF;
+  --font-family: "Noto Sans";
+  --error-msg-color: red;
+  --bs-heading-color: inherit;
+
+  --dialog-width: 50rem;
+  --font-14: 0.875rem;
+  --font-15: 0.9375rem;
+  --font-12: 0.75rem;
+  --font-13: 0.8125rem;
+  --font-16: 1rem;
+  --font-24: 1.5rem;
+  --font-18: 1.125rem;
+  --font-20: 1.25rem;
+  --font-22: 1.375rem;
+  --font-26: 1.625rem;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semiBold: 600;
+  --font-bold: 700;
+  --font-extraBold: 800;
+}
+
+// Colourway tokens + the header's Theme menu. Included after the :root block
+// above so the theme defaults win the tie on equal specificity, and before
+// dark mode so dark mode still has the last word.
+@include themes.styles;
+
+::ng-deep .custom-login-dialog.mat-dialog-container {
+  border-radius: 4px !important;
+}
+
+::ng-deep .mat-mdc-dialog-surface {
+  border-radius: 12px !important;
+}
+
+.font-16 {
+  font-size: var(--font-16);
+}
+
+.font-15 {
+  font-size: var(--font-15);
+}
+
+.font-12 {
+  font-size: var(--font-12);
+}
+
+.font-24 {
+  font-size: var(--font-24);
+}
+
+.font-14 {
+  font-size: var(--font-14);
+}
+
+.font-13 {
+  font-size: var(--font-13);
+}
+
+.font-18 {
+  font-size: var(--font-18);
+}
+
+.font-20 {
+  font-size: var(--font-20);
+}
+
+.font-22 {
+  font-size: var(--font-22);
+}
+
+.font-medium {
+  font-weight: var(--font-medium);
+}
+
+.font-normal {
+  font-weight: var(--font-normal);
+}
+
+.font-semiBold {
+  font-weight: var(--font-semiBold);
+}
+
+.font-bold {
+  font-weight: var(--font-bold);
+}
+
+.font-extrabold {
+  font-weight: var(--font-extrabold);
+}
+
+.no-data-found {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: gray;
+  font-weight: 500;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 20px;
+  letter-spacing: 0%;
+  color: #2c2c2c;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.main-card {
+  min-height: 624px;
+  min-width: 250px;
+  border-radius: 12px;
+  gap: 16px;
+  padding: 24px;
+  background: #ffffff;
+  box-shadow: 0px 4px 10px 0px #0000001a;
+}
+
+.text-white {
+  color: #ffffff;
+}
+
+.form-title {
+  font-family: "Noto Sans", sans-serif !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  color: #2c3e50;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.dotted-separator {
+  border: none;
+  border-top: 3px dotted #333;
+  width: calc(100%);
+}
+
+::ng-deep .mat-mdc-snack-bar-container.success.panelClass {
+  background-color: #4caf50;
+  color: white;
+}
+
+::ng-deep .mat-mdc-snack-bar-container.error.panelClass {
+  background-color: #f44336;
+  color: white;
+}
+
+::ng-deep .mat-mdc-snack-bar-container.info.panelClass {
+  background-color: #2196f3;
+  color: white;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.menu-popup-dialog {
+  width: 600px !important;
+  max-width: 600px !important;
+  min-width: 600px !important;
+
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 100vh !important;
+
+  margin: 0 !important;
+
+  .mat-mdc-dialog-container {
+    width: 600px !important;
+    max-width: 600px !important;
+    min-width: 600px !important;
+
+    height: 100vh !important;
+    max-height: 100vh !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    overflow: hidden !important;
+  }
+
+  .mdc-dialog__container {
+    width: 600px !important;
+    height: 100vh !important;
+  }
+
+  .mdc-dialog__surface {
+    width: 600px !important;
+    max-width: 600px !important;
+    min-width: 600px !important;
+
+    height: 100vh !important;
+    max-height: 100vh !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border-radius: 20px 0 0 20px !important;
+
+    overflow: hidden !important;
+  }
+}
+
+.custom-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 130px;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  animation:
+    spin 1s linear infinite,
+    colorchange 4s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes colorchange {
+
+  0%,
+  25%,
+  50%,
+  75%,
+  100% {
+    border-top-color: var(--primary-color);
+  }
+}
+
+.main-heading {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: -10px !important;
+  margin-top: 20px;
+  font-size: 20px !important;
+  text-transform: none;
+  font-family: "Noto Sans";
+}
+
+.action-button {
+  height: 40px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  border-radius: 5px;
+}
+
+.card-container-res {
+  padding: 24px;
+  background: #fff;
+  border-radius: 8px;
+  height: calc(100vh - 19.75rem);
+  overflow-y: auto;
+  margin-right: 24px;
+}
+
+.page-title {
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  font-family: "Noto Sans" !important;
+}
+
+.example-spacer {
+  flex: 1 1 auto;
+}
+
+::ng-deep .action-button {
+  border-radius: 4px !important;
+}
+
+.actionBtnAdd {
+  background: linear-gradient(90deg, #4a761e 0%, #7fbc41 100%) !important;
+  border-color: #7fbc41 !important;
+}
+
+::ng-deep .actionBtnAdd,
+::ng-deep .actionBtnDwn {
+  border-radius: 4px !important;
+}
+
+.custom-backdrop {
+  position: fixed !important;
+  top: 40px !important;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4) !important;
+  pointer-events: auto !important;
+  z-index: 1000 !important;
+}
+
+.cdk-overlay-pane .mat-mdc-select-panel {
+  background: white !important;
+  backdrop-filter: blur(4px);
+}
+
+.mat-mdc-autocomplete-panel .mat-mdc-option {
+  font-family: var(--font-family);
+  font-size: medium;
+  background: white !important;
+  backdrop-filter: blur(4px);
+}
+
+.mat-mdc-list-item .mdc-list-item__primary-text {
+  font-family: var(--font-family);
+}
+
+@media (max-width: 768px) {
+  .mat-sidenav-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding-left: 4rem !important;
+    padding-right: 0.75rem !important;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+}
+
+.success-snackbar {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin-right: 24px !important;
+}
+
+.success-snackbar .mat-mdc-snackbar-surface {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* =========================================================
+   REGISTER TECHNICAL SANCTION TOAST
+   Scoped to the `sanction-toast` panel class, so the shared toast used by
+   every other screen is untouched.
+
+   The shared toast offsets itself with `margin-top: 179px` on the card
+   *inside* the snackbar. Material animates the snackbar container, so that
+   margin makes the animated box ~260px tall with the visible card sitting at
+   the bottom of it - the card fades from a box it does not fill, which is why
+   dismissing it looks wrong. Here the same offset is moved onto the container
+   itself, so the animated box is exactly the card and it fades in place.
+
+   The offsets are deliberately kept at the shared toast's values so this
+   toast still appears in the same spot as every other one. The two competing
+   `!important` margin-right rules (65px leaked from the toast component,
+   24px from `.success-snackbar` above) are also settled here: these
+   selectors carry an extra class, so they win regardless of load order.
+========================================================= */
+
+/* Collapse every box between the animated container and the card:
+   the card's own 179px offset, and Material's 14px/16px label padding
+   (which `.success-snackbar` does not reset). */
+.sanction-toast .toast-container {
+  margin-top: 0 !important;
+}
+
+.sanction-toast .mat-mdc-snack-bar-label {
+  padding: 0 !important;
+}
+
+/* The offset then moves onto the container. 201px / 81px reproduce exactly
+   where the shared toast lands today (179 + 8 container margin + 14 label
+   padding = 201 from the top; 65 + 16 label padding = 81 from the right),
+   so the toast does not move - only the box being animated changes. */
+.sanction-toast.mat-mdc-snack-bar-container {
+  margin: 201px 81px 0 0 !important;
+}
+
+/* =========================================================
+   INTEGRATED DASHBOARD - "No document available" TOAST
+   Scoped to the `int-dash-info-toast` panel class, so the shared amber
+   "Oops! ... Try again" toast used by every other screen is untouched.
+   Matches the Integrated Dashboard's own card language instead
+   (white surface, 12px radius, subtle border/shadow, Noto Sans, blue accent).
+========================================================= */
+.int-dash-info-toast.mat-mdc-snack-bar-container {
+  /* Overrides the 65px margin-right that ToastMessageComponent's ::ng-deep
+     rule leaks onto every snackbar, so this one sits with a plain, even
+     gap from the viewport edge (top-right, above the footer). */
+  margin: 16px !important;
+}
+
+.int-dash-info-toast.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(16, 35, 60, 0.16) !important;
+}
+
+.int-dash-info-toast .mdc-snackbar__label {
+  color: #0f172a !important;
+  font-family: "Noto Sans", sans-serif !important;
+  font-size: 14px !important;
+}
+
+.int-dash-info-toast .mat-mdc-snack-bar-action {
+  color: #2563eb !important;
+  font-weight: 600 !important;
+}
+
+@include dark.styles;

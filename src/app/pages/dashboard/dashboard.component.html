@@ -1,0 +1,1243 @@
+<div class="dashboard-viewport">
+  <!-- Toast Notification -->
+  <div *ngIf="toastMessage()" class="floating-toast-alert" role="alert">
+    <span>{{ toastMessage() }}</span>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-navbar">
+    <!-- Brand Identity -->
+    <div class="nav-brand-section">
+      <div class="brand-calendar-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="calendar-icon">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+          <polyline points="9 15 11 17 15 13" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round"
+            stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <div class="brand-text-block">
+        <span class="brand-name">PresentiQ</span>
+        <span class="brand-subtext">
+          {{ isPdfUploaded() ? 'ATTENDANCE PORTAL' : 'Attendance Analytics Dashboard' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Center Navigation Tabs -->
+    <nav class="nav-tabs-container" aria-label="Dashboard Navigation">
+      <button type="button" class="nav-tab-item" [class.tab-active]="activeTab() === 'Dashboard'"
+        (click)="setTab('Dashboard')">
+        <span>Dashboard</span>
+        <span *ngIf="activeTab() === 'Dashboard'" class="tab-indicator" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" class="nav-tab-item" [class.tab-active]="activeTab() === 'Employee Directory'"
+        (click)="setTab('Employee Directory')">
+        <span>Employee Directory</span>
+        <span *ngIf="activeTab() === 'Employee Directory'" class="tab-indicator" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" class="nav-tab-item" [class.tab-active]="activeTab() === 'Attendance Reports'"
+        (click)="setTab('Attendance Reports')">
+        <span>Attendance Reports</span>
+        <span *ngIf="activeTab() === 'Attendance Reports'" class="tab-indicator" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" class="nav-tab-item" [class.tab-active]="activeTab() === 'Analytics'"
+        (click)="setTab('Analytics')">
+        <span>Analytics</span>
+        <span *ngIf="activeTab() === 'Analytics'" class="tab-indicator" aria-hidden="true"></span>
+      </button>
+
+      <button type="button" class="nav-tab-item" [class.tab-active]="activeTab() === 'Settings'" routerLink="/settings">
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <!-- Right Controls -->
+    <div class="nav-actions-section">
+      <!-- Dynamic Month Dropdown Selector -->
+      <div class="dropdown-wrapper">
+        <button type="button" class="month-selector-btn" (click)="toggleMonthDropdown()"
+          aria-label="Select Attendance Month">
+          <span>{{ selectedMonth() }}</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron-icon">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+
+        <div *ngIf="showMonthDropdown()" class="dropdown-menu-list">
+          <button *ngFor="let m of availableMonths()" type="button" class="dropdown-option"
+            [class.option-selected]="m === selectedMonth()" (click)="selectMonth(m)">
+            <span>{{ m }}</span>
+            <span *ngIf="isMonthUploaded(m)" class="status-chip chip-uploaded">Uploaded</span>
+            <span *ngIf="!isMonthUploaded(m)" class="status-chip chip-empty">No PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons shown when PDF is uploaded -->
+      <ng-container *ngIf="isPdfUploaded()">
+        <label for="pdfUploadNav" class="nav-upload-btn" title="Upload new attendance PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="upload-icon">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          <span>Upload PDF</span>
+          <input id="pdfUploadNav" type="file" accept=".pdf" (change)="onFileSelected($event)"
+            class="visually-hidden" />
+        </label>
+
+        <a routerLink="/settings" class="nav-settings-btn" title="Portal Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="settings-icon">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span>Settings</span>
+        </a>
+      </ng-container>
+
+      <!-- Admin Profile Avatar Pill -->
+      <div class="user-profile-wrapper">
+        <button type="button" class="user-profile-btn" (click)="toggleUserMenu()" aria-label="User Account Menu">
+          <div class="avatar-circle">
+            <span class="avatar-initials">H</span>
+          </div>
+          <span class="user-role-label">Admin</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chevron-mini">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+
+        <!-- User Dropdown Menu -->
+        <div *ngIf="showUserMenu()" class="user-menu-dropdown">
+          <div class="user-menu-header">
+            <strong class="user-display-name">Heera</strong>
+            <span class="user-display-email">Portal Administrator</span>
+          </div>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="user-menu-item" (click)="resetToEmptyState(); showUserMenu.set(false)">
+            Clear Current Month Data
+          </button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="user-menu-item logout-item" (click)="logout()">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- STATE 1: DASHBOARD BEFORE PDF UPLOAD / EMPTY MONTH STATE -->
+  <!-- ========================================================================= -->
+  <main *ngIf="!isPdfUploaded()" class="dashboard-body state-empty-body">
+    <!-- Top Row: 4 Skeleton Placeholder Metric Cards -->
+    <section class="empty-kpi-row" aria-label="Placeholder Metrics">
+      <div class="skeleton-card">
+        <span class="skeleton-title">Total Active Employees</span>
+        <div class="skeleton-shimmer-bar bar-long"></div>
+        <div class="skeleton-shimmer-bar bar-short"></div>
+      </div>
+
+      <div class="skeleton-card">
+        <span class="skeleton-title">Avg Attendance Rate</span>
+        <div class="skeleton-chart-split">
+          <div class="skeleton-shimmer-bar bar-medium"></div>
+          <div class="skeleton-diagonal-line"></div>
+        </div>
+        <div class="skeleton-shimmer-bar bar-tiny"></div>
+      </div>
+
+      <div class="skeleton-card">
+        <span class="skeleton-title">Late Arrivals</span>
+        <div class="skeleton-chart-split">
+          <div class="skeleton-shimmer-bar bar-medium"></div>
+          <div class="skeleton-diagonal-line"></div>
+        </div>
+        <div class="skeleton-shimmer-bar bar-tiny"></div>
+      </div>
+
+      <div class="skeleton-card">
+        <span class="skeleton-title">Absent Rate</span>
+        <div class="skeleton-chart-split">
+          <div class="skeleton-shimmer-bar bar-medium"></div>
+          <div class="skeleton-diagonal-line"></div>
+        </div>
+        <div class="skeleton-shimmer-bar bar-tiny"></div>
+      </div>
+    </section>
+
+    <!-- Center Section: Glowing Drag & Drop Upload Zone -->
+    <section class="upload-dropzone-container" [class.drag-active]="isDragging()" (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)" (drop)="onDrop($event)" aria-label="Upload Attendance PDF">
+      <div class="dropzone-border-glow">
+        <div class="dropzone-inner-content">
+          <div class="pdf-document-icon-wrapper">
+            <svg viewBox="0 0 56 64" fill="none" class="pdf-file-svg">
+              <path
+                d="M6 0C2.68629 0 0 2.68629 0 6V58C0 61.3137 2.68629 64 6 64H50C53.3137 64 56 61.3137 56 58V18L38 0H6Z"
+                fill="#1e293b" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
+              <path d="M38 0V14C38 16.2091 39.7909 18 42 18H56" fill="#334155" />
+              <rect x="11" y="29" width="34" height="18" rx="4" fill="rgba(239, 68, 68, 0.2)" stroke="#ef4444"
+                stroke-width="1.5" />
+              <text x="28" y="42" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle"
+                font-family="sans-serif">PDF</text>
+            </svg>
+          </div>
+
+          <h2 class="dropzone-title">Drag & drop Attendance Report PDF for {{ selectedMonth() }} here</h2>
+          <p class="dropzone-subtitle">Upload the biometric attendance PDF to parse real shift records (Max: 25MB)</p>
+
+          <label for="pdfMainUploadInput" class="dropzone-upload-btn">
+            <span>Upload PDF</span>
+            <input id="pdfMainUploadInput" type="file" accept=".pdf" (change)="onFileSelected($event)"
+              class="visually-hidden" />
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Row: 2 Empty State Visual Cards -->
+    <section class="empty-charts-row">
+      <div class="empty-chart-card">
+        <h3 class="chart-card-heading">Daily Attendance Trend - {{ selectedMonth() }}</h3>
+        <div class="empty-chart-canvas">
+          <svg class="ghost-chart-backdrop" viewBox="0 0 400 120" preserveAspectRatio="none">
+            <path d="M0 80 Q 80 20, 160 70 T 320 60 T 400 30" fill="none" stroke="rgba(255,255,255,0.08)"
+              stroke-width="2" stroke-dasharray="4 4" />
+            <path d="M0 100 Q 90 40, 180 80 T 340 70 T 400 50" fill="none" stroke="rgba(255,255,255,0.05)"
+              stroke-width="2" />
+          </svg>
+          <div class="empty-center-message">
+            <p class="no-data-primary">No records found for {{ selectedMonth() }}.</p>
+            <p class="no-data-secondary">Please upload an attendance report PDF for this month.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-chart-card">
+        <h3 class="chart-card-heading">Designation Distribution - {{ selectedMonth() }}</h3>
+        <div class="empty-chart-canvas">
+          <svg class="ghost-donut-svg" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="55" stroke="rgba(255,255,255,0.05)" stroke-width="18" fill="none" />
+            <circle cx="80" cy="80" r="55" stroke="rgba(255,255,255,0.1)" stroke-width="18" stroke-dasharray="100 245"
+              stroke-linecap="round" fill="none" transform="rotate(-90 80 80)" />
+          </svg>
+          <div class="empty-center-message">
+            <p class="no-data-primary">No records found for {{ selectedMonth() }}.</p>
+            <p class="no-data-secondary">Please upload an attendance report PDF for this month.</p>
+          </div>
+          <div class="card-sparkle-star">
+            <svg viewBox="0 0 40 40" fill="none" class="sparkle-svg">
+              <path
+                d="M20 0C20 11.0457 28.9543 20 40 20C28.9543 20 20 28.9543 20 40C20 28.9543 11.0457 20 0 20C11.0457 20 20 11.0457 20 0Z"
+                fill="url(#cardSparkleGrad)" />
+              <defs>
+                <linearGradient id="cardSparkleGrad" x1="0" y1="0" x2="40" y2="40">
+                  <stop stop-color="#ffffff" stop-opacity="0.8" />
+                  <stop offset="1" stop-color="#38bdf8" stop-opacity="0.3" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- STATE 2: DASHBOARD AFTER REAL PDF UPLOAD -->
+  <!-- ========================================================================= -->
+  <main *ngIf="isPdfUploaded()" class="dashboard-body state-populated-body">
+
+    <!-- TAB 1: MAIN DASHBOARD VIEW -->
+    <ng-container *ngIf="activeTab() === 'Dashboard'">
+      <!-- Sub-Header Row -->
+      <div class="dashboard-subheader-row">
+        <div class="subheader-title-group">
+          <h1 class="page-main-heading">Attendance Analytics</h1>
+        </div>
+      </div>
+
+      <!-- Top Row: 6 Colored KPI Metric Cards with Click-to-Drilldown (Matching Image 2) -->
+      <section class="kpi-cards-grid" aria-label="Attendance Performance Metrics">
+        <!-- 1. Total Employees (Cyan Glow) -->
+        <article class="metric-card card-cyan clickable" (click)="openDrilldown('TOTAL_EMPLOYEES')"
+          title="Click to view all registered staff directory">
+          <div class="card-header-line">
+            <h2 class="metric-title">Total Employees</h2>
+            <div class="metric-icon-wrap icon-cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value-wrap">
+            <span class="metric-big-number">{{ metrics().totalEmployees }}</span>
+            <span class="metric-trend text-green">{{ metrics().employeeTrend }}</span>
+          </div>
+          <svg class="sparkline-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d="M 0,30 Q 30,15 60,25 T 120,18 T 160,28 T 200,10" fill="none" stroke="#06b6d4" stroke-width="2.5" />
+            <path d="M 0,30 Q 30,15 60,25 T 120,18 T 160,28 T 200,10 L 200,40 L 0,40 Z" fill="url(#cyanSparkGrad)"
+              opacity="0.15" />
+            <defs>
+              <linearGradient id="cyanSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#06b6d4" />
+                <stop offset="1" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </article>
+
+        <!-- 2. Completed Working Hours Employee Count (Blue Glow) -->
+        <article class="metric-card card-blue clickable" (click)="openDrilldown('COMPLETED_ONTIME')"
+          title="Click to view on-time completion drilldown">
+          <div class="card-header-line">
+            <h2 class="metric-title">Completed Working Hours Employee Count</h2>
+            <div class="metric-icon-wrap icon-blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value-wrap">
+            <span class="metric-big-number">{{ metrics().completedWorkingHoursEmployees }}</span>
+            <span class="metric-sub-label text-cyan"><span class="symbol-tag">✔</span> {{ metrics().standardShiftsText
+              }}</span>
+          </div>
+          <svg class="sparkline-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d="M 0,25 Q 40,32 80,18 T 140,22 T 200,8" fill="none" stroke="#0284c7" stroke-width="2.5" />
+            <path d="M 0,25 Q 40,32 80,18 T 140,22 T 200,8 L 200,40 L 0,40 Z" fill="url(#blueSparkGrad)"
+              opacity="0.15" />
+            <defs>
+              <linearGradient id="blueSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#0284c7" />
+                <stop offset="1" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </article>
+
+        <!-- 3. Incompleted Working Hours Employee Count (Purple Glow) -->
+        <article class="metric-card card-purple clickable" (click)="openDrilldown('INCOMPLETE_ONTIME')"
+          title="Click to view early departure drilldown">
+          <div class="card-header-line">
+            <h2 class="metric-title">Incompleted Working Hours Employee Count</h2>
+            <div class="metric-icon-wrap icon-purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value-wrap">
+            <span class="metric-big-number">{{ metrics().incompletedWorkingHoursEmployees }}</span>
+            <span class="metric-sub-label text-orange"><span class="symbol-tag">⚠</span> {{
+              metrics().earlyDeparturesText }}</span>
+          </div>
+          <svg class="sparkline-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d="M 0,35 Q 35,28 70,30 T 130,22 T 170,15 T 200,24" fill="none" stroke="#ef4444" stroke-width="2.5" />
+            <path d="M 0,35 Q 35,28 70,30 T 130,22 T 170,15 T 200,24 L 200,40 L 0,40 Z" fill="url(#redSparkGrad)"
+              opacity="0.15" />
+            <defs>
+              <linearGradient id="redSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#ef4444" />
+                <stop offset="1" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </article>
+
+        <!-- 4. Late Attendance Completed Employee Count (Amber Glow) -->
+        <article class="metric-card card-amber clickable" (click)="openDrilldown('COMPLETED_LATE')"
+          title="Click to view late & completed hours drilldown">
+          <div class="card-header-line">
+            <h2 class="metric-title">Late Attendance Completed Employee Count</h2>
+            <div class="metric-icon-wrap icon-amber">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value-wrap">
+            <span class="metric-big-number">{{ metrics().lateAttendanceCompletedEmployees }}</span>
+            <span class="metric-sub-label text-amber"><span class="symbol-dot">●</span> {{
+              metrics().graceTimeUtilizedText }}</span>
+          </div>
+          <svg class="sparkline-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d="M 0,22 Q 40,12 80,26 T 150,16 T 200,28" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+            <path d="M 0,22 Q 40,12 80,26 T 150,16 T 200,28 L 200,40 L 0,40 Z" fill="url(#amberSparkGrad)"
+              opacity="0.15" />
+            <defs>
+              <linearGradient id="amberSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#f59e0b" />
+                <stop offset="1" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </article>
+
+        <!-- 5. Late Attendance Incompleted Employee Count (Red Glow) -->
+        <article class="metric-card card-red clickable" (click)="openDrilldown('INCOMPLETE_LATE')"
+          title="Click to view late & incomplete hours drilldown">
+          <div class="card-header-line">
+            <h2 class="metric-title">Late Attendance Incompleted Employee Count</h2>
+            <div class="metric-icon-wrap icon-red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value-wrap">
+            <span class="metric-big-number">{{ metrics().lateAttendanceIncompletedEmployees }}</span>
+            <span class="metric-sub-label text-red"><span class="symbol-dot">●</span> {{ metrics().lateEarlyExitText
+              }}</span>
+          </div>
+          <svg class="sparkline-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d="M 0,28 Q 30,34 60,20 T 130,26 T 170,12 T 200,18" fill="none" stroke="#fb923c" stroke-width="2.5" />
+            <path d="M 0,28 Q 30,34 60,20 T 130,26 T 170,12 T 200,18 L 200,40 L 0,40 Z" fill="url(#orangeSparkGrad)"
+              opacity="0.15" />
+            <defs>
+              <linearGradient id="orangeSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#fb923c" />
+                <stop offset="1" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </article>
+
+        <!-- 6. Missed Attendance Employee Count (Indigo Glow) -->
+        <article class="metric-card card-indigo clickable" (click)="openDrilldown('MISSED')"
+          title="Click to view missed punches & absents drilldown">
+          <div class="card-header-line">
+            <h2 class="metric-title">Missed Attendance Employee Count</h2>
+            <div class="metric-icon-wrap icon-indigo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <circle cx="12" cy="14" r="2" />
+                <line x1="12" y1="8" x2="12" y2="10" />
+              </svg>
+            </div>
+          </div>
+          <div class="metric-value-wrap">
+            <span class="metric-big-number">{{ metrics().missedAttendanceEmployees }}</span>
+            <span class="metric-sub-label text-red"><span class="symbol-tag">⚠</span> {{
+              metrics().requiresManualUpdateText }}</span>
+          </div>
+          <svg class="sparkline-svg" viewBox="0 0 200 40" preserveAspectRatio="none">
+            <path d="M 0,20 Q 30,12 70,25 T 120,15 T 160,28 T 200,22" fill="none" stroke="#818cf8" stroke-width="2.5" />
+            <path d="M 0,20 Q 30,12 70,25 T 120,15 T 160,28 T 200,22 L 200,40 L 0,40 Z" fill="url(#indigoSparkGrad)"
+              opacity="0.15" />
+            <defs>
+              <linearGradient id="indigoSparkGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop stop-color="#818cf8" />
+                <stop offset="1" stop-color="transparent" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </article>
+      </section>
+
+      <!-- Bottom Row: Daily Attendance Chart (Left) + Employee Directory Table (Right) -->
+      <section class="dashboard-analytics-grid">
+        <!-- Left: Daily Attendance Bar Chart -->
+        <div class="analytics-card daily-attendance-card">
+          <div class="chart-header">
+            <h2 class="chart-title">Daily Attendance - {{ selectedMonth() }}</h2>
+          </div>
+
+          <div class="bar-chart-container">
+            <div class="y-axis-labels">
+              <span>{{ metrics().totalEmployees }}</span>
+              <span>{{ Math.round(metrics().totalEmployees * 0.75) }}</span>
+              <span>{{ Math.round(metrics().totalEmployees * 0.5) }}</span>
+              <span>{{ Math.round(metrics().totalEmployees * 0.25) }}</span>
+              <span>0</span>
+            </div>
+
+            <div class="bars-stage-wrapper">
+              <div class="horizontal-grid-lines">
+                <div class="h-line"></div>
+                <div class="h-line"></div>
+                <div class="h-line"></div>
+                <div class="h-line"></div>
+              </div>
+
+              <div class="bars-flex-row">
+                <div *ngFor="let item of dailyMetrics()" class="bar-column-item" [class.weekend-column]="item.isWeekend"
+                  [class.highlighted-day]="hoveredDay()?.day === item.day" (mouseenter)="selectDay(item)"
+                  (click)="selectDay(item)">
+                  <div *ngIf="item.isWeekend" class="weekend-stripe-bg"></div>
+
+                  <div *ngIf="!item.isWeekend && item.present > 0" class="attendance-gradient-bar"
+                    [style.height.%]="metrics().totalEmployees > 0 ? (item.present / metrics().totalEmployees) * 100 : 0">
+                  </div>
+
+                  <!-- Floating Tooltip -->
+                  <div *ngIf="hoveredDay()?.day === item.day && !item.isWeekend" class="chart-tooltip-bubble">
+                    <div class="tooltip-header">{{ selectedMonth().split(' ')[0] }} {{ item.day }}: {{ item.present }}
+                    </div>
+                    <div class="tooltip-sub">Present, {{ item.leave }} Leave, {{ item.absent }} Absent</div>
+                  </div>
+
+                  <span class="day-number-label">{{ item.day }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Legend Bar -->
+          <div class="chart-legend-row">
+            <div class="legend-badge-item">
+              <span class="legend-dot dot-present"></span>
+              <span class="legend-text">Present</span>
+            </div>
+            <div class="legend-badge-item">
+              <span class="legend-dot dot-leave"></span>
+              <span class="legend-text">Leave</span>
+            </div>
+            <div class="legend-badge-item">
+              <span class="legend-dot dot-absent"></span>
+              <span class="legend-text">Absent</span>
+            </div>
+            <div class="legend-badge-item">
+              <span class="legend-dot dot-missed">!</span>
+              <span class="legend-text">Missed Punch !</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Employee Directory Table -->
+        <div class="analytics-card employee-directory-card">
+          <div class="directory-header-row">
+            <h2 class="directory-title">Employee Directory - {{ selectedMonth() }}</h2>
+            <div class="directory-filter-row">
+              <div class="directory-search-box">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" [(ngModel)]="searchQuery" placeholder="Search employees, IDs..."
+                  class="directory-search-input" aria-label="Search employee directory" />
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive-wrapper">
+            <table class="employee-table">
+              <thead>
+                <tr>
+                  <th scope="col">Employee Name</th>
+                  <th scope="col">Attendance ID</th>
+                  <th scope="col">Status Summary</th>
+                  <th scope="col" class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let emp of paginatedEmployees()" class="clickable-emp-row"
+                  (click)="openEmployeeDetail(emp)">
+                  <td class="emp-name-cell">{{ emp.name }}</td>
+                  <td class="emp-id-cell">{{ emp.attendanceId }}</td>
+                  <td class="emp-status-cell">
+                    <span class="status-pill-badge" [class.pill-missed]="emp.status === 'M'"
+                      [class.pill-present]="emp.status === 'P'" [class.pill-absent]="emp.status === 'A'">
+                      {{ emp.octoberStatus || (emp.status === 'P' ? 'Present' : emp.status === 'M' ? 'Missed ! M' :
+                      'Absent') }}
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <button type="button" class="btn-view-logs"
+                      (click)="$event.stopPropagation(); openEmployeeDetail(emp)">
+                      View Logs
+                    </button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="paginatedEmployees().length === 0">
+                  <td colspan="4" class="no-records-cell">No matching employee records found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="directory-pagination-footer" *ngIf="filteredEmployees().length > 0">
+            <span class="pagination-summary">
+              Showing {{ (currentPage() - 1) * pageSize + 1 }}-{{ (currentPage() - 1) * pageSize +
+              paginatedEmployees().length }} of {{ filteredEmployees().length }} employees
+            </span>
+
+            <div class="pagination-controls-group">
+              <button type="button" class="page-nav-btn" [disabled]="currentPage() === 1"
+                (click)="changePage(currentPage() - 1)" aria-label="Previous Page">
+                &laquo;
+              </button>
+
+              <button *ngFor="let p of pagesArray()" type="button" class="page-number-btn"
+                [class.page-active]="currentPage() === p" (click)="changePage(p)">
+                {{ p }}
+              </button>
+
+              <button type="button" class="page-nav-btn" [disabled]="currentPage() >= totalPages()"
+                (click)="changePage(currentPage() + 1)" aria-label="Next Page">
+                &rsaquo;
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Bottom Brand Pill -->
+      <div class="portal-brand-footer">
+        <span class="footer-badge">Powered by PresentiQ</span>
+      </div>
+    </ng-container>
+
+    <!-- TAB 2: MULTI-MONTH TREND ANALYTICS -->
+    <ng-container *ngIf="activeTab() === 'Analytics'">
+      <section class="multi-month-analytics-section">
+        <!-- Top Analytics Bar -->
+        <div class="analytics-header-row">
+          <div>
+            <h2 class="analytics-page-heading">Attendance Performance Analytics</h2>
+            <p class="analytics-subheading">Computed in real-time from active parsed dataset for {{ selectedMonth() }}
+            </p>
+          </div>
+
+          <div class="analytics-actions-group">
+            <button type="button" class="export-data-btn"
+              (click)="showToast('Analytics summary exported successfully!')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="export-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Export Data</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Trend KPI Cards -->
+        <div class="analytics-kpi-grid">
+          <!-- 1. Avg Attendance Rate -->
+          <div class="trend-kpi-card card-cyan">
+            <span class="kpi-label">Avg Attendance Rate</span>
+            <div class="kpi-value-row">
+              <span class="kpi-huge-number">{{ analyticsSummary().avgAttendanceRate }}</span>
+              <svg viewBox="0 0 60 28" fill="none" class="mini-trend-chart">
+                <path d="M 0,22 Q 15,18 30,12 T 60,4" stroke="#22d3ee" stroke-width="2.5" />
+                <polyline points="50,4 60,4 60,14" stroke="#22d3ee" stroke-width="2.5" />
+              </svg>
+            </div>
+            <span class="kpi-comparison text-green">Calculated for {{ selectedMonth() }}</span>
+          </div>
+
+          <!-- 2. On-Time Arrival -->
+          <div class="trend-kpi-card card-blue">
+            <span class="kpi-label">On-Time Arrival Rate</span>
+            <div class="kpi-value-row">
+              <span class="kpi-huge-number">{{ analyticsSummary().onTimeArrivalRate }}</span>
+              <svg viewBox="0 0 60 28" fill="none" class="mini-trend-chart">
+                <path d="M 0,24 Q 20,20 40,10 T 60,6" stroke="#38bdf8" stroke-width="2.5" />
+                <polyline points="50,6 60,6 60,16" stroke="#38bdf8" stroke-width="2.5" />
+              </svg>
+            </div>
+            <span class="kpi-comparison text-cyan">On-time punch percentage</span>
+          </div>
+
+          <!-- 3. Delayed Arrival Rate -->
+          <div class="trend-kpi-card card-amber">
+            <span class="kpi-label">Delayed Arrival Rate</span>
+            <div class="kpi-value-row">
+              <span class="kpi-huge-number text-amber">{{ analyticsSummary().delayedArrivalRate }}</span>
+              <svg viewBox="0 0 60 28" fill="none" class="mini-trend-chart">
+                <path d="M 0,6 Q 20,10 40,18 T 60,24" stroke="#f59e0b" stroke-width="2.5" />
+                <polyline points="60,14 60,24 50,24" stroke="#f59e0b" stroke-width="2.5" />
+              </svg>
+            </div>
+            <span class="kpi-comparison text-amber">Arrival beyond grace period</span>
+          </div>
+
+          <!-- 4. Active Employee Base -->
+          <div class="trend-kpi-card card-teal">
+            <span class="kpi-label">Registered Employee Base</span>
+            <div class="kpi-value-row">
+              <span class="kpi-huge-number text-teal">{{ analyticsSummary().activeEmployees }} Staff</span>
+              <svg viewBox="0 0 60 28" fill="none" class="mini-trend-chart">
+                <path d="M 0,16 Q 15,8 30,16 T 60,10" stroke="#14b8a6" stroke-width="2.5" />
+              </svg>
+            </div>
+            <span class="kpi-comparison text-teal">Total parsed employees</span>
+          </div>
+        </div>
+
+        <!-- Trend Visualizations -->
+        <div class="analytics-charts-grid">
+          <!-- Monthly Attendance Breakdown -->
+          <div class="analytics-panel-card">
+            <h3 class="panel-heading">Attendance Category Distribution - {{ selectedMonth() }}</h3>
+
+            <div class="grouped-bars-chart-canvas">
+              <div class="chart-y-axis">
+                <span>100%</span>
+                <span>80%</span>
+                <span>60%</span>
+                <span>40%</span>
+                <span>20%</span>
+                <span>0%</span>
+              </div>
+
+              <div class="grouped-bars-stage">
+                <!-- Group 1: On-Time Present -->
+                <div class="bar-group-column">
+                  <div class="bars-triple-wrap">
+                    <div class="col-bar bar-oct" [style.height.%]="analyticsSummary().ontimePctNum"
+                      [title]="'On-Time: ' + analyticsSummary().ontimePctNum + '%'">
+                      <span class="bar-tooltip-pill">{{ analyticsSummary().ontimePctNum }}%</span>
+                    </div>
+                  </div>
+                  <span class="group-x-label">On-Time</span>
+                </div>
+
+                <!-- Group 2: Late Present -->
+                <div class="bar-group-column">
+                  <div class="bars-triple-wrap">
+                    <div class="col-bar bar-sep" [style.height.%]="analyticsSummary().latePctNum"
+                      [title]="'Late: ' + analyticsSummary().latePctNum + '%'">
+                      <span class="bar-tooltip-pill">{{ analyticsSummary().latePctNum }}%</span>
+                    </div>
+                  </div>
+                  <span class="group-x-label">Late</span>
+                </div>
+
+                <!-- Group 3: Leave -->
+                <div class="bar-group-column">
+                  <div class="bars-triple-wrap">
+                    <div class="col-bar bar-aug" [style.height.%]="analyticsSummary().leavePctNum"
+                      [title]="'Leave: ' + analyticsSummary().leavePctNum + '%'">
+                      <span class="bar-tooltip-pill">{{ analyticsSummary().leavePctNum }}%</span>
+                    </div>
+                  </div>
+                  <span class="group-x-label">Leave</span>
+                </div>
+
+                <!-- Group 4: Absent / Missed -->
+                <div class="bar-group-column">
+                  <div class="bars-triple-wrap">
+                    <div class="col-bar bar-red" [style.height.%]="analyticsSummary().absentPctNum"
+                      [title]="'Absent: ' + analyticsSummary().absentPctNum + '%'">
+                      <span class="bar-tooltip-pill">{{ analyticsSummary().absentPctNum }}%</span>
+                    </div>
+                  </div>
+                  <span class="group-x-label">Absent</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="chart-month-legend">
+              <span class="m-legend-item"><span class="m-box box-oct"></span>On-Time</span>
+              <span class="m-legend-item"><span class="m-box box-sep"></span>Late Entry</span>
+              <span class="m-legend-item"><span class="m-box box-aug"></span>Approved Leave</span>
+              <span class="m-legend-item"><span class="m-box box-red"></span>Absent / Missed</span>
+            </div>
+          </div>
+
+          <!-- Wave Representation -->
+          <div class="analytics-panel-card">
+            <h3 class="panel-heading">Punctuality Wave Distribution - {{ selectedMonth() }}</h3>
+
+            <div class="spline-wave-canvas">
+              <svg viewBox="0 0 450 180" class="spline-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="waveBlueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop stop-color="#06b6d4" stop-opacity="0.35" />
+                    <stop offset="1" stop-color="#06b6d4" stop-opacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="waveOrangeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop stop-color="#f97316" stop-opacity="0.25" />
+                    <stop offset="1" stop-color="#f97316" stop-opacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                <line x1="0" y1="36" x2="450" y2="36" stroke="rgba(255,255,255,0.06)" />
+                <line x1="0" y1="72" x2="450" y2="72" stroke="rgba(255,255,255,0.06)" />
+                <line x1="0" y1="108" x2="450" y2="108" stroke="rgba(255,255,255,0.06)" />
+                <line x1="0" y1="144" x2="450" y2="144" stroke="rgba(255,255,255,0.06)" />
+
+                <path d="M 0,60 Q 60,35 120,55 T 240,40 T 360,65 T 450,50 L 450,180 L 0,180 Z"
+                  fill="url(#waveBlueGrad)" />
+                <path d="M 0,60 Q 60,35 120,55 T 240,40 T 360,65 T 450,50" fill="none" stroke="#22d3ee"
+                  stroke-width="2.5" />
+                <circle cx="360" cy="65" r="4.5" fill="#ffffff" stroke="#22d3ee" stroke-width="2" />
+
+                <path d="M 0,145 Q 60,155 120,140 T 240,150 T 360,148 T 450,155 L 450,180 L 0,180 Z"
+                  fill="url(#waveOrangeGrad)" />
+                <path d="M 0,145 Q 60,155 120,140 T 240,150 T 360,148 T 450,155" fill="none" stroke="#fb923c"
+                  stroke-width="2.5" />
+                <circle cx="240" cy="150" r="4.5" fill="#ffffff" stroke="#fb923c" stroke-width="2" />
+              </svg>
+
+              <div class="wave-pill-tag tag-oct">{{ selectedMonth() }}</div>
+            </div>
+
+            <div class="chart-month-legend">
+              <span class="m-legend-item"><span class="wave-circle-dot dot-cyan"></span>Daily Attendance %</span>
+              <span class="m-legend-item"><span class="wave-circle-dot dot-orange"></span>Leaves & Missed Punches</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </ng-container>
+
+    <!-- TAB 3: FULL EMPLOYEE DIRECTORY EXPANDED VIEW -->
+    <ng-container *ngIf="activeTab() === 'Employee Directory'">
+      <section class="directory-expanded-section">
+        <div class="directory-expanded-card">
+          <div class="dir-exp-header">
+            <div>
+              <h2 class="dir-exp-title">Employee Staff Directory</h2>
+              <p class="dir-exp-desc">
+                Complete biometric roster of all {{ allEmployees().length }} registered staff for {{ selectedMonth() }}.
+                Click any row to view monthly calendar punches.
+              </p>
+            </div>
+            <div class="directory-search-box">
+              <input type="text" [(ngModel)]="searchQuery" placeholder="Search by name, ID or role..."
+                class="directory-search-input" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="table-responsive-wrapper">
+            <table class="employee-table">
+              <thead>
+                <tr>
+                  <th>Employee Name &#8645;</th>
+                  <th>Attendance ID &#8645;</th>
+                  <th>Designation &#8645;</th>
+                  <th class="text-center">Status &#8645;</th>
+                  <th class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let emp of filteredEmployees()" class="clickable-emp-row" (click)="openEmployeeDetail(emp)">
+                  <td class="emp-name-cell">
+                    <span class="emp-link-name">{{ emp.name }}</span>
+                  </td>
+                  <td class="emp-id-cell">{{ emp.attendanceId }}</td>
+                  <td class="emp-desig-cell">{{ emp.designation }}</td>
+                  <td class="text-center">
+                    <span class="status-square-badge" [class.badge-p]="emp.status === 'P'"
+                      [class.badge-a]="emp.status === 'A'" [class.badge-m]="emp.status === 'M'">
+                      {{ emp.status === 'M' ? '! M' : emp.status }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="view-calendar-btn"
+                      (click)="$event.stopPropagation(); openEmployeeDetail(emp)">
+                      View Calendar &rarr;
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="filteredEmployees().length === 0">
+                  <td colspan="5" class="no-records-cell">No matching employee records found.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </ng-container>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: KPI DRILLDOWN MODAL -->
+  <!-- ========================================================================= -->
+  <div *ngIf="isDrilldownOpen()" class="modal-backdrop" (click)="closeDrilldownModal()">
+    <div class="drilldown-modal-card" (click)="$event.stopPropagation()">
+      <!-- Modal Header -->
+      <header class="drilldown-modal-header">
+        <div class="drilldown-title-row">
+          <h2 class="drilldown-heading">{{ drilldownTitle() }}</h2>
+          <div class="drilldown-header-actions">
+            <div class="modal-search-wrap">
+              <input type="text" [(ngModel)]="drilldownSearch" placeholder="Search employees, IDs, dates... 🔍"
+                class="modal-search-input" />
+            </div>
+            <button type="button" class="modal-action-btn" (click)="exportCsv()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Export CSV</span>
+            </button>
+            <button type="button" class="modal-action-btn" (click)="exportPdf()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span>Export PDF</span>
+            </button>
+            <button type="button" class="modal-close-icon-btn" (click)="closeDrilldownModal()"
+              aria-label="Close Drilldown">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Summary Stats Pills inside Header -->
+        <div class="drilldown-summary-pills-row">
+          <div class="summary-pill-item">
+            <span class="pill-lbl">Total Affected Records</span>
+            <strong class="pill-val">{{ drilldownHeaderStats().affectedCount }}</strong>
+          </div>
+          <div class="summary-pill-item">
+            <span class="pill-lbl">Average Late Time</span>
+            <strong class="pill-val">{{ drilldownHeaderStats().avgLateTime }}</strong>
+          </div>
+          <div class="summary-pill-item">
+            <span class="pill-lbl">Hours Completed</span>
+            <strong class="pill-val">{{ drilldownHeaderStats().hoursCompletedPct }}</strong>
+          </div>
+          <div class="summary-pill-item">
+            <span class="pill-lbl">Required Action</span>
+            <strong class="pill-val text-green">{{ drilldownHeaderStats().requiredActionCount }}</strong>
+          </div>
+        </div>
+      </header>
+
+      <!-- Data Table -->
+      <div class="drilldown-table-wrapper">
+        <table class="drilldown-table">
+          <thead>
+            <tr>
+              <th scope="col" class="sno-col-header">S.NO.</th>
+              <th scope="col" (click)="sortDrilldownBy('employeeName')">
+                <span>Employee Name</span> <span class="sort-glyph">&#8645;</span>
+              </th>
+              <th scope="col" (click)="sortDrilldownBy('attendanceId')">
+                <span>Attendance ID</span> <span class="sort-glyph">&#8645;</span>
+              </th>
+              <th scope="col" (click)="sortDrilldownBy('designation')">
+                <span>Designation</span> <span class="sort-glyph">&#8645;</span>
+              </th>
+              <th scope="col" (click)="sortDrilldownBy('date')">
+                <span>Date</span> <span class="sort-glyph">&#8645;</span>
+              </th>
+              <th scope="col" (click)="sortDrilldownBy('status')">
+                <span>Status</span> <span class="sort-glyph">&#8645;</span>
+              </th>
+              <th scope="col">Shift Category</th>
+              <th scope="col">In Time</th>
+              <th scope="col">Out Time</th>
+              <th scope="col" (click)="sortDrilldownBy('duration')">
+                <span>Duration</span> <span class="sort-glyph">&#8645;</span>
+              </th>
+              <th scope="col">Late Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of paginatedDrilldownRows(); let i = index">
+              <td class="sno-cell">{{ (drilldownPage() - 1) * drilldownPageSize() + i + 1 }}</td>
+              <td class="emp-name-cell">{{ row.employeeName }}</td>
+              <td class="code-id-cell">{{ row.attendanceId }}</td>
+              <td class="desig-cell">{{ row.designation }}</td>
+              <td class="date-cell">{{ row.date }}</td>
+
+              <!-- Real PDF Status Column (P, H, A) -->
+              <td class="status-cell">
+                <span class="pdf-status-badge" [class.status-p]="row.status === 'P'"
+                  [class.status-h]="row.status === 'H'" [class.status-a]="row.status === 'A'" [title]="row.status === 'P' ? 'Present (Min 8.5h required)' :
+                          row.status === 'H' ? 'Holiday' :
+                          'Absent'">
+                  <span class="status-letter">{{ row.status }}</span>
+                  <span class="status-label">
+                    {{ row.status === 'P' ? 'Present' :
+                    row.status === 'H' ? 'Holiday' :
+                    row.status === 'A' ? 'Absent' : 'Staff' }}
+                  </span>
+                </span>
+              </td>
+
+              <!-- Shift Category Badge -->
+              <td>
+                <span class="drilldown-status-badge" [class.badge-late-complete]="row.category === 'COMPLETED_LATE'"
+                  [class.badge-ontime-complete]="row.category === 'COMPLETED_ONTIME'"
+                  [class.badge-early-depart]="row.category === 'INCOMPLETE_ONTIME'"
+                  [class.badge-late-incom]="row.category === 'INCOMPLETE_LATE'"
+                  [class.badge-missed]="row.category === 'MISSED'" [class.badge-holiday]="row.category === 'HOLIDAY'">
+                  {{ row.category === 'COMPLETED_LATE' ? 'Late - Complete' :
+                  row.category === 'COMPLETED_ONTIME' ? 'On-Time Complete' :
+                  row.category === 'INCOMPLETE_ONTIME' ? 'Early Departure' :
+                  row.category === 'INCOMPLETE_LATE' ? 'Late - Incomplete' :
+                  row.category === 'MISSED' ? 'Missed Punch' :
+                  row.category === 'HOLIDAY' ? 'Holiday' : 'Total Staff' }}
+                </span>
+              </td>
+
+              <td class="time-cell" [class.time-late]="row.isLate">
+                {{ row.inTime }}
+              </td>
+              <td class="time-cell" [class.time-missing]="row.outTime === 'Missing'">
+                {{ row.outTime }}
+              </td>
+              <td class="duration-cell"
+                [class.duration-met]="row.duration && row.duration !== '--' && row.duration >= '08:30:00'">
+                <span class="duration-text">{{ row.duration }}</span>
+                  <span *ngIf="row.duration && row.duration !== '--'" class="duration-hint"
+                    [title]="row.duration >= '08:30:00' ? 'Met: ≥ 8.5 Hours' : 'Below: < 8.5 Hours'">
+                    {{ row.duration >= '08:30:00' ? '✓' : '⚠️' }}
+                  </span>
+              </td>
+              <td class="late-dur-cell">{{ row.lateDuration || '--' }}</td>
+            </tr>
+
+            <tr *ngIf="paginatedDrilldownRows().length === 0">
+              <td colspan="11" class="no-records-cell">No matching records found for this drilldown filter.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="drilldown-modal-footer">
+        <div class="footer-left-info">
+          <span class="showing-count-text">
+            Showing {{ filteredDrilldownRows().length === 0 ? 0 : (drilldownPage() - 1) * drilldownPageSize() + 1 }}-{{
+            (drilldownPage() - 1) * drilldownPageSize() + paginatedDrilldownRows().length }} of {{
+            filteredDrilldownRows().length }} records
+          </span>
+          <span class="powered-tag">Powered by PresentiQ</span>
+        </div>
+
+        <!-- Center: Rows Per Page Selector (Default minimum 10 rows, user adjustable) -->
+        <div class="footer-center-controls">
+          <div class="page-size-selector-wrap">
+            <label for="drilldownPageSizeSelect" class="page-size-label">Rows per page:</label>
+            <select id="drilldownPageSizeSelect" class="page-size-select" [ngModel]="drilldownPageSize()"
+              (ngModelChange)="setDrilldownPageSize($event)" aria-label="Select rows per page">
+              <option *ngFor="let opt of pageSizeOptions" [value]="opt">{{ opt }} rows</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="footer-pagination-buttons">
+          <button type="button" class="pagination-btn" [disabled]="drilldownPage() === 1"
+            (click)="changeDrilldownPage(drilldownPage() - 1)">
+            Previous
+          </button>
+          <span class="page-indicator">{{ drilldownPage() }} / {{ drilldownTotalPages() }}</span>
+          <button type="button" class="pagination-btn" [disabled]="drilldownPage() >= drilldownTotalPages()"
+            (click)="changeDrilldownPage(drilldownPage() + 1)">
+            Next
+          </button>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: EMPLOYEE ATTENDANCE CALENDAR DETAIL MODAL -->
+  <!-- ========================================================================= -->
+  <div *ngIf="isEmployeeModalOpen() && selectedEmployee()" class="modal-backdrop" (click)="closeEmployeeModal()">
+    <div class="employee-calendar-modal-card" (click)="$event.stopPropagation()">
+      <!-- Modal Header with Breadcrumb & Employee Meta -->
+      <header class="emp-modal-header">
+        <div class="emp-modal-top-line">
+          <div class="breadcrumb-trail">
+            <span class="crumb-link" (click)="closeEmployeeModal()">Dashboard</span>
+            <span class="crumb-sep">/</span>
+            <span class="crumb-link" (click)="setTab('Employee Directory'); closeEmployeeModal()">Employee
+              Directory</span>
+            <span class="crumb-sep">/</span>
+            <span class="crumb-active">{{ selectedEmployee()?.name }}</span>
+          </div>
+
+          <div class="emp-modal-top-actions">
+            <div class="emp-month-badge">{{ selectedMonth() }}</div>
+            <span class="active-profile-pill">Active Profile</span>
+            <button type="button" class="export-pdf-sm-btn"
+              (click)="showToast('Employee calendar PDF exported successfully!')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="export-icon-sm">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Export PDF</span>
+            </button>
+            <button type="button" class="modal-close-icon-btn" (click)="closeEmployeeModal()">✕</button>
+          </div>
+        </div>
+
+        <div class="emp-profile-banner">
+          <div class="emp-avatar-box">
+            <span>{{ selectedEmployee()?.name?.charAt(0) }}</span>
+          </div>
+          <div class="emp-meta-details">
+            <h3 class="emp-full-name">{{ selectedEmployee()?.name }}</h3>
+            <p class="emp-meta-sub">
+              ID: {{ selectedEmployee()?.roleId || selectedEmployee()?.attendanceId }} &bull; Role: {{
+              selectedEmployee()?.designation }} &bull; Organization: {{ selectedEmployee()?.organization || 'NIC' }}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <!-- Calendar & Working Hours Split Body -->
+      <div class="emp-modal-body-grid">
+        <!-- Left: Monthly Attendance Calendar -->
+        <div class="calendar-panel-box">
+          <div class="cal-header-row">
+            <h4 class="cal-title">Monthly Attendance Calendar - {{ selectedMonth() }}</h4>
+            <div class="cal-legend-line">
+              <span class="cal-legend-item"><span class="box-sq box-p">P</span>Present (P)</span>
+              <span class="cal-legend-item"><span class="box-sq box-a">A</span>Absent (A)</span>
+              <span class="cal-legend-item"><span class="box-sq box-h">H</span>Weekend / Holiday (H)</span>
+              <span class="cal-legend-item"><span class="box-sq box-anomaly">!M</span>Anomaly (!M)</span>
+            </div>
+          </div>
+
+          <!-- Calendar Grid -->
+          <div class="calendar-grid-cells">
+            <div *ngFor="let log of selectedEmployee()?.dailyLogs" class="cal-day-cell"
+              [class.cell-weekend]="log.status === 'H'"
+              [class.cell-anomaly]="log.category === 'MISSED' && log.status !== 'H'"
+              [class.cell-absent]="log.status === 'A'">
+              <div class="day-cell-top">
+                <span class="day-num">{{ log.day }}</span>
+                <span class="day-badge" [class.badge-p]="log.status === 'P' && log.category !== 'MISSED'"
+                  [class.badge-a]="log.status === 'A'" [class.badge-h]="log.status === 'H'"
+                  [class.badge-anomaly]="log.category === 'MISSED' && log.status !== 'H'">
+                  {{ log.category === 'MISSED' && log.status !== 'H' ? '! M' : log.status }}
+                </span>
+              </div>
+              <div class="day-cell-timing">
+                <span *ngIf="log.status === 'P' && log.category !== 'MISSED'" class="timing-text">
+                  {{ log.inTime }} - {{ log.outTime }}
+                </span>
+                <span *ngIf="log.category === 'MISSED' && log.status !== 'H'" class="timing-anomaly">
+                  {{ log.inTime }} - No Record
+                </span>
+                <span *ngIf="log.status === 'A'" class="timing-absent">
+                  0.0 hrs
+                </span>
+                <span *ngIf="log.status === 'H'" class="timing-holiday">
+                  Weekend
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Working Hours Progress & Anomaly Audit Trail -->
+        <div class="emp-side-progress-column">
+          <!-- Working Hours Progress Widget -->
+          <div class="progress-widget-box">
+            <h4 class="widget-heading">Working Hours Progress</h4>
+
+            <div class="donut-progress-center">
+              <svg viewBox="0 0 120 120" class="donut-gauge-svg">
+                <circle cx="60" cy="60" r="48" stroke="rgba(255,255,255,0.08)" stroke-width="12" fill="none" />
+                <circle cx="60" cy="60" r="48" stroke="#06b6d4" stroke-width="12"
+                  [attr.stroke-dasharray]="(employeeProgressPct() * 3.01) + ' 301'" stroke-linecap="round" fill="none"
+                  transform="rotate(-90 60 60)" />
+              </svg>
+              <div class="gauge-center-text">
+                <span class="gauge-id-tag">Shift Fulfilled</span>
+                <strong class="gauge-pct">{{ employeeProgressPct() }}%</strong>
+              </div>
+            </div>
+
+            <div class="hours-summary-split">
+              <div class="hr-item">
+                <span class="hr-lbl">Total Scheduled</span>
+                <strong class="hr-val">{{ employeeScheduledHours() }} hrs</strong>
+              </div>
+              <div class="hr-item">
+                <span class="hr-lbl">Worked Hours</span>
+                <strong class="hr-val text-cyan">{{ employeeWorkedHours() }} hrs</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attendance Audit Trail & Anomaly Alerts -->
+          <div class="audit-alerts-box">
+            <h4 class="widget-heading">Attendance Audit Trail &amp; Anomaly Alerts</h4>
+
+            <div *ngIf="employeeAnomalies().length > 0">
+              <div class="alert-card-warning" *ngFor="let anom of employeeAnomalies()">
+                <div class="alert-warning-header">
+                  <span class="warning-dot"></span>
+                  <strong>Missed Out-Punch / Anomaly on {{ anom.date }}</strong>
+                </div>
+                <p class="alert-warning-text">System flag: In-time recorded as {{ anom.inTime }}, out-time is missing.
+                </p>
+                <button type="button" class="btn-review" (click)="showToast('Review request submitted to supervisor.')">
+                  Request Review
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="employeeLateEntries().length > 0">
+              <div class="audit-history-item" *ngFor="let late of employeeLateEntries()">
+                <span class="audit-bullet"></span>
+                <span class="audit-text">Late Entry on {{ late.date }} - {{ late.inTime }} ({{ late.lateDuration ||
+                  'Late' }})</span>
+              </div>
+            </div>
+
+            <div *ngIf="employeeAnomalies().length === 0 && employeeLateEntries().length === 0"
+              class="no-anomalies-note">
+              <span>✔ No attendance anomalies detected for this employee in {{ selectedMonth() }}.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="emp-modal-footer">
+        <button type="button" class="btn-close-emp-modal" (click)="closeEmployeeModal()">Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Processing Modal Overlay -->
+  <div *ngIf="isParsing()" class="parsing-overlay" role="alert" aria-live="assertive">
+    <div class="parsing-modal-card">
+      <div class="parsing-spinner-wrap">
+        <div class="parsing-pulse-ring"></div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="parsing-icon">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+      </div>
+      <h3 class="parsing-title">Parsing Attendance PDF...</h3>
+      <p class="parsing-desc">Extracting real shift logs, biometric records, and attendance hours for {{
+        uploadedFileName() }}.</p>
+      <div class="parsing-progress-bar">
+        <div class="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+</div>
