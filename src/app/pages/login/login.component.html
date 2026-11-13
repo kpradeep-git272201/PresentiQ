@@ -166,22 +166,26 @@
       </div>
 
       <!-- Feedback Banners -->
-      <div *ngIf="errorMessage" class="feedback-alert error-alert" role="alert">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-icon">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
-        <span>{{ errorMessage }}</span>
-      </div>
+      @if (errorMessage) {
+        <div class="feedback-alert error-alert" role="alert">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-icon">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ errorMessage }}</span>
+        </div>
+      }
 
-      <div *ngIf="loginSuccess" class="feedback-alert success-alert" role="status">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-icon">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-          <polyline points="22 4 12 14.01 9 11.01"></polyline>
-        </svg>
-        <span>Access Granted! Redirecting to dashboard...</span>
-      </div>
+      @if (loginSuccess) {
+        <div class="feedback-alert success-alert" role="status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="alert-icon">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+          <span>Access Granted! Redirecting to dashboard...</span>
+        </div>
+      }
 
       <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="form-container" novalidate>
         <!-- Username or Email Field -->
@@ -238,14 +242,17 @@
               tabindex="0"
             >
               <!-- Eye open / closed icon -->
-              <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="eye-icon">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="eye-icon">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                <line x1="1" y1="1" x2="23" y2="23" />
-              </svg>
+              @if (!showPassword) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="eye-icon">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="eye-icon">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              }
             </button>
           </div>
         </div>
@@ -274,22 +281,24 @@
           [disabled]="isLoading || loginSuccess"
           aria-label="Sign In to PresentiQ"
         >
-          <span *ngIf="!isLoading && !loginSuccess" class="btn-content">
-            <span>Sign In</span>
-            <span class="btn-arrow" aria-hidden="true">&rarr;</span>
-          </span>
-
-          <span *ngIf="isLoading" class="btn-loading">
-            <span class="spinner" aria-hidden="true"></span>
-            <span>Authenticating...</span>
-          </span>
-
-          <span *ngIf="loginSuccess" class="btn-success">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-check">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <span>Verified</span>
-          </span>
+          @if (isLoading) {
+            <span class="btn-loading">
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Authenticating...</span>
+            </span>
+          } @else if (loginSuccess) {
+            <span class="btn-success">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="btn-check">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Verified</span>
+            </span>
+          } @else {
+            <span class="btn-content">
+              <span>Sign In</span>
+              <span class="btn-arrow" aria-hidden="true">&rarr;</span>
+            </span>
+          }
         </button>
       </form>
     </section>
@@ -309,39 +318,41 @@
   </main>
 
   <!-- Forgot Password Modal -->
-  <div *ngIf="showForgotModal" class="modal-backdrop" (click)="closeForgotPassword()">
-    <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-icon-badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="modal-icon">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-        </div>
-        <h3 class="modal-title">Password Assistance</h3>
-      </div>
-      <div class="modal-body">
-        <p>This is a protected government administrative portal. To reset your security credentials, please contact the division administrator or use your designated authorized credentials:</p>
-        <div class="modal-credentials-box">
-          <div class="cred-row">
-            <span class="cred-label">Authorized User:</span>
-            <code class="cred-code">heera</code>
+  @if (showForgotModal) {
+    <div class="modal-backdrop" (click)="closeForgotPassword()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="modal-icon">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
           </div>
-          <div class="cred-row">
-            <span class="cred-label">Authorized Password:</span>
-            <code class="cred-code">Heera@292</code>
+          <h3 class="modal-title">Password Assistance</h3>
+        </div>
+        <div class="modal-body">
+          <p>This is a protected government administrative portal. To reset your security credentials, please contact the division administrator or use your designated authorized credentials:</p>
+          <div class="modal-credentials-box">
+            <div class="cred-row">
+              <span class="cred-label">Authorized User:</span>
+              <code class="cred-code">heera</code>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Authorized Password:</span>
+              <code class="cred-code">Heera@292</code>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="modal-autofill-btn" (click)="fillDemoCredentials(); closeForgotPassword()">
-          Use Credentials
-        </button>
-        <button type="button" class="modal-close-btn" (click)="closeForgotPassword()">
-          Close
-        </button>
+        <div class="modal-actions">
+          <button type="button" class="modal-autofill-btn" (click)="fillDemoCredentials(); closeForgotPassword()">
+            Use Credentials
+          </button>
+          <button type="button" class="modal-close-btn" (click)="closeForgotPassword()">
+            Close
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  }
 </div>
