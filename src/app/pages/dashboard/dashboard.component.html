@@ -850,8 +850,8 @@
               </p>
             </div>
             <div class="directory-search-box">
-              <input type="text" [(ngModel)]="searchQuery" placeholder="Search by name, ID or role..."
-                class="directory-search-input" />
+              <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="directoryPage.set(1)" placeholder="Search by name, ID or role..."
+                class="directory-search-input" aria-label="Search employee staff directory" />
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -859,28 +859,50 @@
             </div>
           </div>
 
-          <div class="table-responsive-wrapper">
-            <table class="employee-table">
+          <!-- Fixed Height Scrollable Table Body -->
+          <div class="table-responsive-wrapper directory-table-scroll-wrapper">
+            <table class="employee-table directory-scroll-table">
               <thead>
                 <tr>
-                  <th>Employee Name &#8645;</th>
-                  <th>Attendance ID &#8645;</th>
-                  <th>Designation &#8645;</th>
-                  <th class="text-center">Status &#8645;</th>
-                  <th class="text-center">Action</th>
+                  <th scope="col" (click)="sortDirectoryBy('name')" class="clickable-th">
+                    <span>Employee Name</span>
+                    <span class="sort-glyph">
+                      {{ directorySortCol() === 'name' ? (directorySortAsc() ? '▲' : '▼') : '⇅' }}
+                    </span>
+                  </th>
+                  <th scope="col" (click)="sortDirectoryBy('attendanceId')" class="clickable-th">
+                    <span>Attendance ID</span>
+                    <span class="sort-glyph">
+                      {{ directorySortCol() === 'attendanceId' ? (directorySortAsc() ? '▲' : '▼') : '⇅' }}
+                    </span>
+                  </th>
+                  <th scope="col" (click)="sortDirectoryBy('designation')" class="clickable-th">
+                    <span>Designation</span>
+                    <span class="sort-glyph">
+                      {{ directorySortCol() === 'designation' ? (directorySortAsc() ? '▲' : '▼') : '⇅' }}
+                    </span>
+                  </th>
+                  <th scope="col" (click)="sortDirectoryBy('status')" class="clickable-th text-center">
+                    <span>Status</span>
+                    <span class="sort-glyph">
+                      {{ directorySortCol() === 'status' ? (directorySortAsc() ? '▲' : '▼') : '⇅' }}
+                    </span>
+                  </th>
+                  <th scope="col" class="text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
-                @for (emp of filteredEmployees(); track emp.attendanceId) {
+                @for (emp of directoryPaginatedEmployees(); track emp.attendanceId) {
                   <tr class="clickable-emp-row" (click)="openEmployeeDetail(emp)">
                     <td class="emp-name-cell">
                       <span class="emp-link-name">{{ emp.name }}</span>
                     </td>
-                    <td class="emp-id-cell">{{ emp.attendanceId }}</td>
+                    <td class="emp-id-cell">#{{ emp.attendanceId }}</td>
                     <td class="emp-desig-cell">{{ emp.designation }}</td>
                     <td class="text-center">
                       <span class="status-square-badge" [class.badge-p]="emp.status === 'P'"
-                        [class.badge-a]="emp.status === 'A'" [class.badge-m]="emp.status === 'M'">
+                        [class.badge-a]="emp.status === 'A'" [class.badge-m]="emp.status === 'M'"
+                        [class.badge-h]="emp.status === 'H'" [class.badge-hd]="emp.status === 'HD'">
                         {{ emp.status === 'M' ? '! M' : emp.status }}
                       </span>
                     </td>
@@ -899,6 +921,43 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Directory Footer matching Drilldown Modal Footer -->
+          <footer class="drilldown-modal-footer directory-expanded-footer">
+            <div class="footer-left-info">
+              <span class="showing-count-text">
+                Showing {{ filteredEmployees().length === 0 ? 0 : (directoryPage() - 1) * directoryPageSize() + 1 }}-{{
+                (directoryPage() - 1) * directoryPageSize() + directoryPaginatedEmployees().length }} of {{
+                filteredEmployees().length }} records
+              </span>
+              <span class="powered-tag">Powered by PresentiQ</span>
+            </div>
+
+            <!-- Center: Rows Per Page Selector (Default minimum 10 rows, user adjustable) -->
+            <div class="footer-center-controls">
+              <div class="page-size-selector-wrap">
+                <label for="directoryPageSizeSelect" class="page-size-label">Rows per page:</label>
+                <select id="directoryPageSizeSelect" class="page-size-select" [ngModel]="directoryPageSize()"
+                  (ngModelChange)="setDirectoryPageSize($event)" aria-label="Select rows per page">
+                  @for (opt of pageSizeOptions; track opt) {
+                    <option [value]="opt">{{ opt }} rows</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <div class="footer-pagination-buttons">
+              <button type="button" class="pagination-btn" [disabled]="directoryPage() === 1"
+                (click)="changeDirectoryPage(directoryPage() - 1)" aria-label="Previous Page">
+                Previous
+              </button>
+              <span class="page-indicator">{{ directoryPage() }} / {{ directoryTotalPages() }}</span>
+              <button type="button" class="pagination-btn" [disabled]="directoryPage() >= directoryTotalPages()"
+                (click)="changeDirectoryPage(directoryPage() + 1)" aria-label="Next Page">
+                Next
+              </button>
+            </div>
+          </footer>
         </div>
       </section>
     }

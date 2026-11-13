@@ -126,6 +126,12 @@ export class DashboardComponent implements OnInit {
   currentPage = signal<number>(1);
   pageSize = 5;
 
+  // Full Directory Tab Pagination & Sorting
+  directoryPage = signal<number>(1);
+  directoryPageSize = signal<number>(10);
+  directorySortCol = signal<keyof EmployeeDirectoryItem>('name');
+  directorySortAsc = signal<boolean>(true);
+
   // Chart Tooltip Inspection
   hoveredDay = signal<DailyAttendanceMetric | null>(null);
 
@@ -409,6 +415,34 @@ export class DashboardComponent implements OnInit {
     return pages;
   });
 
+  directorySortedEmployees = computed(() => {
+    const list = [...this.filteredEmployees()];
+    const col = this.directorySortCol();
+    const asc = this.directorySortAsc();
+    return list.sort((a, b) => {
+      const valA = (a[col] ?? '').toString().toLowerCase();
+      const valB = (b[col] ?? '').toString().toLowerCase();
+      if (valA < valB) return asc ? -1 : 1;
+      if (valA > valB) return asc ? 1 : -1;
+      return 0;
+    });
+  });
+
+  directoryPaginatedEmployees = computed(() => {
+    const list = this.directorySortedEmployees();
+    const size = this.directoryPageSize();
+    const totalPages = Math.max(1, Math.ceil(list.length / size));
+    const page = Math.min(Math.max(1, this.directoryPage()), totalPages);
+    const start = (page - 1) * size;
+    return list.slice(start, start + size);
+  });
+
+  directoryTotalPages = computed(() => {
+    const count = this.filteredEmployees().length;
+    const size = this.directoryPageSize();
+    return Math.max(1, Math.ceil(count / size));
+  });
+
   // ---------------------------------------------------------------------------
   // Analytics Tab Computed Summary (100% Calculated from Real Stored Records)
   // ---------------------------------------------------------------------------
@@ -564,6 +598,7 @@ export class DashboardComponent implements OnInit {
     this.hoveredDay.set(null);
     this.searchQuery.set('');
     this.currentPage.set(1);
+    this.directoryPage.set(1);
     this.isDrilldownOpen.set(false);
     this.isEmployeeModalOpen.set(false);
   }
@@ -984,6 +1019,30 @@ export class DashboardComponent implements OnInit {
     if (page >= 1 && page <= this.totalPages()) {
       this.currentPage.set(page);
     }
+  }
+
+  changeDirectoryPage(page: number): void {
+    if (page >= 1 && page <= this.directoryTotalPages()) {
+      this.directoryPage.set(page);
+    }
+  }
+
+  setDirectoryPageSize(size: number | string): void {
+    const num = Number(size);
+    if (!isNaN(num) && num > 0) {
+      this.directoryPageSize.set(num);
+      this.directoryPage.set(1);
+    }
+  }
+
+  sortDirectoryBy(col: keyof EmployeeDirectoryItem): void {
+    if (this.directorySortCol() === col) {
+      this.directorySortAsc.update((asc) => !asc);
+    } else {
+      this.directorySortCol.set(col);
+      this.directorySortAsc.set(true);
+    }
+    this.directoryPage.set(1);
   }
 
   setTab(tab: string): void {

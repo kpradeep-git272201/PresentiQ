@@ -514,15 +514,21 @@ html.theme-light {
     }
   }
 
-  // Chart & Analytics Card
-  .analytics-card {
+  // Chart & Analytics Card & Directory Card
+  .analytics-card,
+  .directory-expanded-card {
     background: #ffffff !important;
     border-color: rgba(0, 0, 0, 0.08) !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
 
     .chart-title,
-    .directory-title {
+    .directory-title,
+    .dir-exp-title {
       color: #0f172a !important;
+    }
+
+    .dir-exp-desc {
+      color: #64748b !important;
     }
 
     .y-axis-labels,
@@ -571,7 +577,8 @@ html.theme-light {
     .emp-id-cell {
       color: #475569 !important;
     }
-    .btn-view-logs {
+    .btn-view-logs,
+    .view-calendar-btn {
       background: #f1f5f9 !important;
       border-color: #cbd5e1 !important;
       color: #0284c7 !important;
@@ -579,6 +586,15 @@ html.theme-light {
         background: #e0f2fe !important;
         border-color: #0284c7 !important;
       }
+    }
+  }
+
+  .directory-table-scroll-wrapper {
+    .employee-table th {
+      background: #f8fafc !important;
+      color: #1e293b !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+      box-shadow: 0 1px 0 #e2e8f0 !important;
     }
   }
 
@@ -609,6 +625,34 @@ html.theme-light {
     border: 1px solid #cbd5e1 !important;
     color: #64748b !important;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  }
+
+  // Toast / Feedback Notice in Light Mode
+  .toast-notice {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%) !important;
+    border: 1.5px solid #10b981 !important;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.18), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+
+    .toast-icon-badge {
+      background: #10b981 !important;
+      border-color: #059669 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35) !important;
+    }
+
+    .toast-text-msg {
+      color: #065f46 !important;
+      font-weight: 700 !important;
+    }
+
+    .toast-dismiss-btn {
+      color: #047857 !important;
+
+      &:hover {
+        background: rgba(4, 120, 87, 0.15) !important;
+        color: #064e3b !important;
+      }
+    }
   }
 
   // Settings & General Surface Cards
@@ -815,10 +859,40 @@ html.theme-light {
     border-top: 1px solid #e2e8f0 !important;
     color: #475569 !important;
 
-    .pagination-select {
+    .showing-count-text {
+      color: #334155 !important;
+    }
+
+    .powered-tag {
+      color: #64748b !important;
+    }
+
+    .page-size-label {
+      color: #64748b !important;
+    }
+
+    .pagination-select,
+    .page-size-select {
       background: #ffffff !important;
       border: 1px solid #cbd5e1 !important;
       color: #0f172a !important;
+    }
+
+    .pagination-btn {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #334155 !important;
+      &:hover:not(:disabled) {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
+      &:disabled {
+        opacity: 0.45 !important;
+      }
+    }
+
+    .page-indicator {
+      color: #475569 !important;
     }
   }
 
