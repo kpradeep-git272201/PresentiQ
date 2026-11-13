@@ -1035,7 +1035,9 @@ $root: "html#{$dm}, body#{$dm}";
     .search-field input,
     .search-box input,
     .stepper-input-box input,
-    .stepper-input {
+    .stepper-input,
+    .input-box input,
+    .field-input {
       background-color: transparent !important;
       background: transparent !important;
       border: none !important;

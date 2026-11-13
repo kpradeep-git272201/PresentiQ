@@ -329,6 +329,35 @@ html.theme-light {
   box-shadow: 0 0 0 2px var(--theme-glow, rgba(56, 189, 248, 0.2)) !important;
 }
 
+// Login Form Input Autofill & Transparency Protection across all themes
+.input-box {
+  background: rgba(15, 23, 42, 0.72) !important;
+  border-radius: 11px !important;
+  overflow: hidden !important;
+
+  .field-input,
+  input {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    color: #f8fafc !important;
+    -webkit-text-fill-color: #f8fafc !important;
+
+    &:-webkit-autofill,
+    &:-webkit-autofill:hover,
+    &:-webkit-autofill:focus,
+    &:-webkit-autofill:active {
+      -webkit-text-fill-color: #f8fafc !important;
+      -webkit-box-shadow: 0 0 0 1000px #131c31 inset !important;
+      box-shadow: 0 0 0 1000px #131c31 inset !important;
+      transition: background-color 5000000s ease-in-out 0s !important;
+      caret-color: #ffffff !important;
+    }
+  }
+}
+
 // Light theme specific overrides for readability
 html.theme-light {
   body {
