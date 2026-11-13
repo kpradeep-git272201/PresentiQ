@@ -365,7 +365,7 @@ html.theme-light {
     color: #0f172a !important;
   }
 
-  // Top Navbar Light
+  // Top Navbar Light (Dashboard & Settings)
   .top-navbar,
   .dashboard-navbar,
   .settings-navbar {
@@ -376,28 +376,52 @@ html.theme-light {
     .brand-name {
       color: #0f172a !important;
     }
-    .brand-sub {
+    .brand-sub,
+    .brand-subtext {
       color: #0284c7 !important;
     }
+
+    // Dashboard Center Nav Tabs
+    .nav-tab-item {
+      color: #475569 !important;
+      font-weight: 500;
+
+      &:hover {
+        color: #0f172a !important;
+      }
+
+      &.tab-active {
+        color: #0284c7 !important;
+        font-weight: 700 !important;
+      }
+
+      .tab-indicator {
+        background: #0284c7 !important;
+        box-shadow: 0 0 8px rgba(2, 132, 199, 0.45) !important;
+      }
+    }
+
+    // Settings Center Nav Links
     .nav-tab-link {
-      color: #64748b !important;
+      color: #475569 !important;
+      font-weight: 500;
       &:hover {
         color: #0f172a !important;
       }
       &.active {
         color: #0284c7 !important;
+        font-weight: 700 !important;
         &::after {
           background: #0284c7 !important;
           box-shadow: 0 0 6px rgba(2, 132, 199, 0.4) !important;
         }
       }
     }
-    .icon-bell-btn {
-      color: #64748b !important;
-      &:hover {
-        color: #0f172a !important;
-      }
-    }
+
+    // Right Action Buttons
+    .month-selector-btn,
+    .nav-upload-btn,
+    .nav-settings-btn,
     .month-pill,
     .admin-pill,
     .btn-portal-settings,
@@ -405,7 +429,62 @@ html.theme-light {
       background: #f1f5f9 !important;
       border: 1px solid #cbd5e1 !important;
       color: #0f172a !important;
+      font-weight: 600 !important;
+
+      .upload-icon,
+      .settings-icon,
+      .chevron-icon {
+        color: #0284c7 !important;
+      }
+
+      &:hover {
+        background: #e2e8f0 !important;
+        border-color: #0284c7 !important;
+        color: #0284c7 !important;
+      }
     }
+
+    .user-profile-btn {
+      &:hover {
+        background: #f1f5f9 !important;
+      }
+
+      .user-role-label {
+        color: #0f172a !important;
+        font-weight: 600 !important;
+      }
+
+      .chevron-mini {
+        color: #64748b !important;
+      }
+    }
+
+    .dropdown-menu-list,
+    .user-menu-dropdown {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12) !important;
+
+      .dropdown-option,
+      .user-menu-item {
+        color: #0f172a !important;
+        &:hover {
+          background: #f1f5f9 !important;
+        }
+        &.option-selected {
+          background: rgba(2, 132, 199, 0.1) !important;
+          color: #0284c7 !important;
+        }
+      }
+    }
+
+    .icon-bell-btn {
+      color: #64748b !important;
+      &:hover {
+        color: #0f172a !important;
+      }
+    }
+
     .avatar-sm,
     .avatar-circle {
       background: #0284c7 !important;
@@ -425,11 +504,13 @@ html.theme-light {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05) !important;
 
     .metric-title {
-      color: #334155 !important;
+      color: #1e293b !important;
+      font-weight: 600 !important;
     }
 
     .metric-big-number {
       color: #0f172a !important;
+      font-weight: 800 !important;
     }
   }
 
@@ -476,7 +557,8 @@ html.theme-light {
   .employee-table {
     th {
       background: #f8fafc !important;
-      color: #334155 !important;
+      color: #1e293b !important;
+      font-weight: 700 !important;
       border-bottom-color: #e2e8f0 !important;
     }
     td {
