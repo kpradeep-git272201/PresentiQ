@@ -5,6 +5,7 @@ export interface ShiftSettings {
   baseEndTime?: string; // "17:30"
   graceMinutes: number; // e.g. 15 or 30 minutes
   minWorkHours: number; // e.g. 8.5
+  halfDayWorkHours?: number; // e.g. 6.0 (duration below this is considered Half Day)
   allowOvertime?: boolean;
   enforceStrictCheckout?: boolean;
   sendMissedPunchAlerts?: boolean;
@@ -31,6 +32,7 @@ export const DEFAULT_SHIFT_SETTINGS: ShiftSettings = {
   baseEndTime: '17:30',
   graceMinutes: 0,
   minWorkHours: 8.5,
+  halfDayWorkHours: 6.0,
   allowOvertime: true,
   enforceStrictCheckout: true,
   sendMissedPunchAlerts: true,

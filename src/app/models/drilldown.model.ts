@@ -10,7 +10,7 @@ export type AttendanceCategory =
 export interface DailyLogAnalysis {
   sNo: number;
   date: string;
-  status: 'P' | 'A' | 'H';
+  status: 'P' | 'A' | 'H' | 'HD';
   inTime: string;
   outTime: string;
   duration: string;
@@ -37,7 +37,7 @@ export interface DrilldownRow {
   attendanceId: string;
   designation: string;
   date: string;
-  status: 'P' | 'A' | 'H';
+  status: 'P' | 'A' | 'H' | 'HD';
   inTime: string;
   outTime: string;
   duration: string;

@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SettingsService } from '../../services/settings/settings.service';
 import { ShiftSettings } from '../../models/settings.model';
+import { ThemeService, ThemeOption, ThemeId } from '../../services/theme/theme.service';
 
 @Component({
   selector: 'app-settings',
@@ -15,17 +16,22 @@ import { ShiftSettings } from '../../models/settings.model';
 })
 export class SettingsComponent implements OnInit {
   private settingsService = inject(SettingsService);
+  private themeService = inject(ThemeService);
   private router = inject(Router);
 
   activeSidebarTab = 'General Settings';
   sidebarTabs = [
     { name: 'General Settings', icon: 'settings' },
+    { name: 'Theme & Appearance', icon: 'palette' },
     { name: 'Shift & Schedule', icon: 'clock' },
     { name: 'Grace & Compliance', icon: 'shield' },
     { name: 'Notification Preferences', icon: 'bell' },
     { name: 'Users & Permissions', icon: 'users' },
     { name: 'Integrations', icon: 'grid' },
   ];
+
+  availableThemes: ThemeOption[] = this.themeService.getAvailableThemes();
+  activeTheme = this.themeService.currentTheme;
 
   currentConfig: ShiftSettings = { ...this.settingsService.settings() };
   successMessage = '';
@@ -39,6 +45,9 @@ export class SettingsComponent implements OnInit {
     }
     if (!this.currentConfig.baseEndTime) {
       this.currentConfig.baseEndTime = '17:30';
+    }
+    if (!this.currentConfig.halfDayWorkHours) {
+      this.currentConfig.halfDayWorkHours = 6.0;
     }
 
     // Automatically synchronize Shift Start and End Times with configured Grace Period
@@ -113,11 +122,25 @@ export class SettingsComponent implements OnInit {
     this.currentConfig = { ...this.settingsService.settings() };
     this.currentConfig.baseStartTime = '09:00';
     this.currentConfig.baseEndTime = '17:30';
+    this.currentConfig.halfDayWorkHours = 6.0;
     this.syncShiftTimesWithGrace(this.currentConfig.graceMinutes || 0);
     this.successMessage = 'Reset to default shift (09:00 AM - 05:30 PM).';
     setTimeout(() => {
       this.successMessage = '';
     }, 3000);
+  }
+
+  selectTheme(themeId: ThemeId): void {
+    this.themeService.setTheme(themeId);
+    const themeName = this.getThemeName(themeId);
+    this.successMessage = `Theme switched to "${themeName}"! Saved and persistent across sessions.`;
+    setTimeout(() => {
+      this.successMessage = '';
+    }, 2800);
+  }
+
+  getThemeName(themeId: ThemeId): string {
+    return this.availableThemes.find((t) => t.id === themeId)?.name || themeId;
   }
 
   goBack(): void {

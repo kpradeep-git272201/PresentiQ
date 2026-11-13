@@ -207,4 +207,50 @@ describe('AttendanceAnalyticsHelper', () => {
               expect(kpis.missedAttendance).toBe(1);
             });
           });
+
+          describe('determineLogStatus (Half Day & Full Day duration rule)', () => {
+            it('marks log as HD (Half Day) when worked duration is strictly less than 6 hours by default', () => {
+              const log5h = { status: 'P', inTime: '09:00:00', outTime: '14:30:00', duration: '05:30:00' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(log5h)).toBe('HD');
+
+              const log4h = { status: 'P', inTime: '12:00:00', outTime: '16:00:00', duration: '04:00:00' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(log4h)).toBe('HD');
+            });
+
+            it('marks log as P (Present) when worked duration meets or exceeds 6 hours', () => {
+              const log6h = { status: 'P', inTime: '09:00:00', outTime: '15:00:00', duration: '06:00:00' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(log6h)).toBe('P');
+
+              const log8h = { status: 'P', inTime: '09:00:00', outTime: '17:30:00', duration: '08:30:00' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(log8h)).toBe('P');
+            });
+
+            it('dynamically respects custom halfDayWorkHours configured in settings (e.g. 5 hours)', () => {
+              const custom5hSettings: ShiftSettings = {
+                startTime: '09:00',
+                endTime: '17:30',
+                graceMinutes: 0,
+                minWorkHours: 8.5,
+                halfDayWorkHours: 5.0,
+              };
+
+              const log5h15m = { status: 'P', inTime: '09:00:00', outTime: '14:15:00', duration: '05:15:00' };
+              // 5h 15m >= 5.0h -> Present
+              expect(AttendanceAnalyticsHelper.determineLogStatus(log5h15m, custom5hSettings)).toBe('P');
+
+              const log4h45m = { status: 'P', inTime: '09:00:00', outTime: '13:45:00', duration: '04:45:00' };
+              // 4h 45m < 5.0h -> Half Day
+              expect(AttendanceAnalyticsHelper.determineLogStatus(log4h45m, custom5hSettings)).toBe('HD');
+            });
+
+            it('retains H for scheduled holiday without punches', () => {
+              const logHoliday = { status: 'H', inTime: '--', outTime: '--', duration: '--' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(logHoliday)).toBe('H');
+            });
+
+            it('retains A for absent without punches', () => {
+              const logAbsent = { status: 'A', inTime: '--', outTime: '--', duration: '--' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(logAbsent)).toBe('A');
+            });
+          });
         });

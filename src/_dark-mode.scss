@@ -959,8 +959,11 @@ $root: "html#{$dm}, body#{$dm}";
     .custom-search-box input,
     .search-wrapper input,
     .search-field input,
-    .search-box input {
+    .search-box input,
+    .stepper-input-box input,
+    .stepper-input {
       background-color: transparent !important;
+      background: transparent !important;
       border: none !important;
       box-shadow: none !important;
     }

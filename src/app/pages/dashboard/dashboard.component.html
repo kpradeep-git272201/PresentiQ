@@ -554,8 +554,9 @@
                   <td class="emp-id-cell">{{ emp.attendanceId }}</td>
                   <td class="emp-status-cell">
                     <span class="status-pill-badge" [class.pill-missed]="emp.status === 'M'"
-                      [class.pill-present]="emp.status === 'P'" [class.pill-absent]="emp.status === 'A'">
-                      {{ emp.octoberStatus || (emp.status === 'P' ? 'Present' : emp.status === 'M' ? 'Missed ! M' :
+                      [class.pill-present]="emp.status === 'P'" [class.pill-absent]="emp.status === 'A'"
+                      [class.pill-halfday]="emp.status === 'HD'">
+                      {{ emp.octoberStatus || (emp.status === 'P' ? 'Present' : emp.status === 'HD' ? 'Half Day' : emp.status === 'M' ? 'Missed ! M' :
                       'Absent') }}
                     </span>
                   </td>
@@ -962,15 +963,18 @@
               <td class="desig-cell">{{ row.designation }}</td>
               <td class="date-cell">{{ row.date }}</td>
 
-              <!-- Real PDF Status Column (P, H, A) -->
+              <!-- Real PDF Status Column (P, HD, H, A) -->
               <td class="status-cell">
                 <span class="pdf-status-badge" [class.status-p]="row.status === 'P'"
-                  [class.status-h]="row.status === 'H'" [class.status-a]="row.status === 'A'" [title]="row.status === 'P' ? 'Present (Min 8.5h required)' :
+                  [class.status-hd]="row.status === 'HD'"
+                  [class.status-h]="row.status === 'H'" [class.status-a]="row.status === 'A'" [title]="row.status === 'P' ? 'Present' :
+                          row.status === 'HD' ? 'Half Day (< ' + currentHalfDayHours() + 'h duration)' :
                           row.status === 'H' ? 'Holiday' :
                           'Absent'">
                   <span class="status-letter">{{ row.status }}</span>
                   <span class="status-label">
                     {{ row.status === 'P' ? 'Present' :
+                    row.status === 'HD' ? 'Half Day' :
                     row.status === 'H' ? 'Holiday' :
                     row.status === 'A' ? 'Absent' : 'Staff' }}
                   </span>
@@ -1109,6 +1113,7 @@
             <h4 class="cal-title">Monthly Attendance Calendar - {{ selectedMonth() }}</h4>
             <div class="cal-legend-line">
               <span class="cal-legend-item"><span class="box-sq box-p">P</span>Present (P)</span>
+              <span class="cal-legend-item"><span class="box-sq box-hd">HD</span>Half Day (HD)</span>
               <span class="cal-legend-item"><span class="box-sq box-a">A</span>Absent (A)</span>
               <span class="cal-legend-item"><span class="box-sq box-h">H</span>Weekend / Holiday (H)</span>
               <span class="cal-legend-item"><span class="box-sq box-anomaly">!M</span>Anomaly (!M)</span>
@@ -1119,11 +1124,13 @@
           <div class="calendar-grid-cells">
             <div *ngFor="let log of selectedEmployee()?.dailyLogs" class="cal-day-cell"
               [class.cell-weekend]="log.status === 'H'"
+              [class.cell-halfday]="log.status === 'HD'"
               [class.cell-anomaly]="log.category === 'MISSED' && log.status !== 'H'"
               [class.cell-absent]="log.status === 'A'">
               <div class="day-cell-top">
                 <span class="day-num">{{ log.day }}</span>
                 <span class="day-badge" [class.badge-p]="log.status === 'P' && log.category !== 'MISSED'"
+                  [class.badge-hd]="log.status === 'HD'"
                   [class.badge-a]="log.status === 'A'" [class.badge-h]="log.status === 'H'"
                   [class.badge-anomaly]="log.category === 'MISSED' && log.status !== 'H'">
                   {{ log.category === 'MISSED' && log.status !== 'H' ? '! M' : log.status }}
@@ -1131,6 +1138,9 @@
               </div>
               <div class="day-cell-timing">
                 <span *ngIf="log.status === 'P' && log.category !== 'MISSED'" class="timing-text">
+                  {{ log.inTime }} - {{ log.outTime }}
+                </span>
+                <span *ngIf="log.status === 'HD'" class="timing-halfday">
                   {{ log.inTime }} - {{ log.outTime }}
                 </span>
                 <span *ngIf="log.category === 'MISSED' && log.status !== 'H'" class="timing-anomaly">

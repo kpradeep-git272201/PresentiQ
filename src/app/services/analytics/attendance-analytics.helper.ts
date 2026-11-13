@@ -69,6 +69,66 @@ export class AttendanceAnalyticsHelper {
   }
 
   /**
+   * Determine attendance status ('P' | 'A' | 'H' | 'HD') based on worked duration and settings.
+   *
+   * Business Logic Rules:
+   * 1. 'H' (Holiday): Scheduled holiday/off with no punches
+   * 2. 'A' (Absent): Explicitly absent with no punches
+   * 3. 'HD' (Half Day): If worked duration is strictly less than halfDayWorkHours threshold (default: 6.0 hours, configurable by Admin)
+   * 4. 'P' (Present): Worked duration meets or exceeds halfDayWorkHours threshold (e.g. >= 6.0 hours)
+   */
+  static determineLogStatus(
+    log: { status?: string; inTime?: string; outTime?: string; duration?: string },
+    settings?: ShiftSettings
+  ): 'P' | 'A' | 'H' | 'HD' {
+    const rawStatus = (log.status || '').toUpperCase().trim();
+
+    const hasValidPunch =
+      Boolean(log.inTime) &&
+      log.inTime !== '--' &&
+      !log.inTime!.includes('0000-00-00') &&
+      Boolean(log.outTime) &&
+      log.outTime !== '--' &&
+      log.outTime !== 'Missing' &&
+      !log.outTime!.includes('0000-00-00');
+
+    // Keep scheduled Holiday if no punches
+    if (rawStatus === 'H' && !hasValidPunch) {
+      return 'H';
+    }
+
+    // Keep Absent if no punches
+    if (rawStatus === 'A' && !hasValidPunch) {
+      return 'A';
+    }
+
+    // Calculate worked duration in seconds
+    let durSec = this.parseDurationToSeconds(log.duration || '');
+    if (durSec === 0 && hasValidPunch && log.inTime && log.outTime) {
+      const inSec = this.parseTimeToSeconds(log.inTime);
+      const outSec = this.parseTimeToSeconds(log.outTime);
+      if (outSec > inSec) {
+        durSec = outSec - inSec;
+      }
+    }
+
+    if (durSec > 0) {
+      const halfDayHours = Number(settings?.halfDayWorkHours) > 0 ? Number(settings?.halfDayWorkHours) : 6.0;
+      const halfDaySeconds = halfDayHours * 3600;
+
+      // If worked duration is strictly less than halfDayWorkHours threshold, it is considered Half Day (HD)
+      if (durSec < halfDaySeconds) {
+        return 'HD';
+      }
+      return 'P';
+    }
+
+    if (rawStatus === 'H') return 'H';
+    if (rawStatus === 'A') return 'A';
+    return rawStatus === 'HD' ? 'HD' : 'P';
+  }
+
+  /**
    * Categorize an individual attendance daily log using dynamic ShiftSettings or defaults
    *
    * Business Logic & KPI Rules:

@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ThemeService } from './services/theme/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -11,4 +12,6 @@ import { RouterOutlet } from '@angular/router';
 })
 export class AppComponent {
   title = 'PresentiQ';
+  // Eagerly initialize ThemeService so active theme is enforced on initial bootstrap
+  private themeService = inject(ThemeService);
 }

@@ -1393,6 +1393,12 @@
     color: #34d399;
   }
 
+  &.pill-halfday {
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fbbf24;
+  }
+
   &.pill-absent {
     background: rgba(239, 68, 68, 0.16);
     border: 1px solid rgba(239, 68, 68, 0.4);
@@ -1820,6 +1826,17 @@
       }
     }
 
+    &.status-hd {
+      background: rgba(245, 158, 11, 0.14);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+
+      .status-letter {
+        background: #f59e0b;
+        color: #451a03;
+      }
+    }
+
     &.status-h {
       background: rgba(168, 85, 247, 0.14);
       border: 1px solid rgba(168, 85, 247, 0.35);
@@ -2238,6 +2255,12 @@
       color: #34d399;
     }
 
+    &.box-hd {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid #f59e0b;
+      color: #fbbf24;
+    }
+
     &.box-a {
       background: rgba(239, 68, 68, 0.2);
       border: 1px solid #ef4444;
@@ -2280,6 +2303,10 @@
     opacity: 0.75;
   }
 
+  &.cell-halfday {
+    border: 1px solid rgba(245, 158, 11, 0.35);
+  }
+
   &.cell-anomaly {
     border: 1.5px solid #f59e0b;
     box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
@@ -2312,6 +2339,11 @@
       color: #34d399;
     }
 
+    &.badge-hd {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+    }
+
     &.badge-a {
       background: rgba(239, 68, 68, 0.2);
       color: #f87171;
@@ -2337,6 +2369,11 @@
 
   .timing-text {
     color: #94a3b8;
+  }
+
+  .timing-halfday {
+    color: #fbbf24;
+    font-weight: 600;
   }
 
   .timing-anomaly {

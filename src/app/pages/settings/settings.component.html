@@ -82,6 +82,13 @@
             <circle cx="12" cy="12" r="3" />
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
+          <svg *ngIf="tab.icon === 'palette'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+            <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+            <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+            <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+            <path d="M12 2C6.49 2 2 6.49 2 12c0 4.96 4.04 9 9 9 .83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.51-4.49-10-10-10z" />
+          </svg>
           <svg *ngIf="tab.icon === 'clock'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
@@ -109,15 +116,17 @@
         </button>
       </aside>
 
-      <!-- Main Panel: Shift & Compliance Rules (Matching Image 1) -->
-      <section class="settings-main-card">
-        <div class="panel-header">
-          <h2 class="panel-title">Shift & Compliance Rules</h2>
-          <div class="section-sub-header">
-            <h3>Global Shift Configurations</h3>
-            <p>Define standard working hours, grace thresholds, and shift constraints.</p>
+      <!-- Right Column: Settings Content Cards -->
+      <div class="settings-main-column">
+        <!-- Main Panel: Shift & Compliance Rules (Matching Image 1) -->
+        <section class="settings-main-card" *ngIf="activeSidebarTab !== 'Theme & Appearance'">
+          <div class="panel-header">
+            <h2 class="panel-title">Shift & Compliance Rules</h2>
+            <div class="section-sub-header">
+              <h3>Global Shift Configurations</h3>
+              <p>Define standard working hours, grace thresholds, and shift constraints.</p>
+            </div>
           </div>
-        </div>
 
         <form (ngSubmit)="saveConfig()" class="rules-form">
           <div class="form-columns-grid">
@@ -204,6 +213,28 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Half Day Minimum Working Hours -->
+              <div class="two-fields-row">
+                <div class="field-item">
+                  <label for="halfDayWorkHours" class="field-label">Half Day Working Hours</label>
+                  <div class="stepper-input-box unit-box">
+                    <input
+                      id="halfDayWorkHours"
+                      type="number"
+                      step="0.5"
+                      [(ngModel)]="currentConfig.halfDayWorkHours"
+                      name="halfDayWorkHours"
+                      min="1"
+                      max="12"
+                      class="stepper-input"
+                      required
+                    />
+                    <span class="unit-tag">Hours</span>
+                  </div>
+                  <span class="field-hint">Duration below this is considered Half Day (HD) (e.g. 5.0 or 6.0 hrs)</span>
+                </div>
+              </div>
             </div>
 
             <!-- Right Toggles Column -->
@@ -266,6 +297,94 @@
           </div>
         </form>
       </section>
+
+      <!-- Theme & Appearance Studio Card -->
+      <section class="settings-main-card theme-studio-card" *ngIf="activeSidebarTab === 'General Settings' || activeSidebarTab === 'Theme & Appearance'">
+        <div class="panel-header theme-panel-header">
+          <div class="panel-title-group">
+            <div class="theme-header-icon-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="theme-header-icon">
+                <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                <path d="M12 2C6.49 2 2 6.49 2 12c0 4.96 4.04 9 9 9 .83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.51-4.49-10-10-10z" />
+              </svg>
+            </div>
+            <div>
+              <h2 class="panel-title">Theme & Visual Appearance</h2>
+              <div class="section-sub-header">
+                <h3>Multi-Theme Customization</h3>
+                <p>Choose from 7 crafted themes. Changes apply instantly and stay preserved even after logout and re-login.</p>
+              </div>
+            </div>
+          </div>
+          <div class="current-theme-pill">
+            <span class="pulse-indicator"></span>
+            <span class="active-lbl">Active Theme:</span>
+            <strong class="active-val">{{ getThemeName(activeTheme()) }}</strong>
+          </div>
+        </div>
+
+        <div class="theme-cards-grid">
+          <div
+            *ngFor="let theme of availableThemes"
+            class="theme-card"
+            [class.active]="activeTheme() === theme.id"
+            (click)="selectTheme(theme.id)"
+            role="button"
+            tabindex="0"
+            (keydown.enter)="selectTheme(theme.id)"
+            (keydown.space)="selectTheme(theme.id)"
+            [attr.aria-pressed]="activeTheme() === theme.id"
+          >
+            <!-- Card Gradient Preview Banner -->
+            <div class="theme-card-banner" [style.background]="theme.bgPreview">
+              <div class="banner-accent-glow" [style.background]="theme.accentColor"></div>
+              <span class="theme-mode-badge" [class.badge-light]="theme.isLight">
+                {{ theme.isLight ? 'Light Mode' : 'Dark Mode' }}
+              </span>
+              <span *ngIf="activeTheme() === theme.id" class="theme-badge-applied">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="badge-icon">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                Applied
+              </span>
+            </div>
+
+            <!-- Card Content -->
+            <div class="theme-card-content">
+              <div class="theme-card-top-row">
+                <div class="theme-swatch" [style.background]="theme.accentColor" [style.box-shadow]="'0 0 12px ' + theme.accentColor + '66'">
+                  <svg *ngIf="activeTheme() === theme.id" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" class="swatch-check">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <div class="theme-name-meta">
+                  <h4 class="theme-card-name">{{ theme.name }}</h4>
+                  <span class="theme-hex-tag">{{ theme.accentColor }}</span>
+                </div>
+              </div>
+
+              <p class="theme-card-desc">{{ theme.description }}</p>
+
+              <div class="theme-card-action">
+                <button
+                  type="button"
+                  class="btn-select-theme"
+                  [class.is-active]="activeTheme() === theme.id"
+                >
+                  <svg *ngIf="activeTheme() === theme.id" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-check-icon">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>{{ activeTheme() === theme.id ? 'Currently Active' : 'Select Theme' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </div>
     </div>
   </main>
 </div>

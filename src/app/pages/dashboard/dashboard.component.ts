@@ -146,6 +146,7 @@ export class DashboardComponent implements OnInit {
   avgLateTime = signal<string>('--');
   hoursCompletedPct = signal<string>('0%');
   requiredActionCount = signal<number>(0);
+  currentHalfDayHours = computed(() => this.settingsService.settings().halfDayWorkHours ?? 6.0);
 
   // Filtered Drilldown Rows
   filteredDrilldownRows = computed(() => {
@@ -172,7 +173,11 @@ export class DashboardComponent implements OnInit {
       q === 'p' ||
       q === 'present' ||
       q === 'a' ||
-      q === 'absent';
+      q === 'absent' ||
+      q === 'hd' ||
+      q === 'half day' ||
+      q === 'halfday' ||
+      q.includes('half');
 
     if (matchesEmployee || matchesHolidayOrStatus || type === 'TOTAL_EMPLOYEES') {
       // When searching for an employee or holiday, or viewing Total Employees,
@@ -215,6 +220,8 @@ export class DashboardComponent implements OnInit {
           (q.includes('holiday') && (r.status === 'H' || r.category === 'HOLIDAY')) ||
           (q === 'p' && r.status === 'P') ||
           (q.includes('present') && r.status === 'P') ||
+          (q === 'hd' && r.status === 'HD') ||
+          ((q === 'half day' || q === 'halfday' || q.includes('half')) && r.status === 'HD') ||
           (q === 'a' && r.status === 'A') ||
           (q.includes('absent') && r.status === 'A') ||
           r.category.toLowerCase().replace('_', ' ').includes(q)
@@ -233,6 +240,8 @@ export class DashboardComponent implements OnInit {
             (q.includes('holiday') && (r.status === 'H' || r.category === 'HOLIDAY')) ||
             (q === 'p' && r.status === 'P') ||
             (q.includes('present') && r.status === 'P') ||
+            (q === 'hd' && r.status === 'HD') ||
+            ((q === 'half day' || q === 'halfday' || q.includes('half')) && r.status === 'HD') ||
             (q === 'a' && r.status === 'A') ||
             (q.includes('absent') && r.status === 'A') ||
             r.category.toLowerCase().replace('_', ' ').includes(q)
@@ -631,12 +640,15 @@ export class DashboardComponent implements OnInit {
             ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
             : '--';
 
+        const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(log, settings);
+        log.status = effectiveStatus;
+
         flattened.push({
           employeeName: emp.name,
           attendanceId: emp.attendanceId.replace('#', ''),
           designation: emp.designation,
           date: log.date,
-          status: log.status,
+          status: effectiveStatus,
           inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : (log.inTime || '--'),
           outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday ? '--' : 'Missing'),
           duration: exactDuration,
@@ -655,6 +667,36 @@ export class DashboardComponent implements OnInit {
 
     this.kpis.set(newKpis);
     this.allFlattenedLogs.set(flattened);
+
+    // Keep directory employee status in sync with calculated half-days
+    this.allEmployees.update((empList) =>
+      empList.map((emp) => {
+        const fullEmp = employees.find((e) => e.attendanceId === emp.attendanceId || e.name === emp.name);
+        if (!fullEmp || !fullEmp.dailyLogs) return emp;
+        const presentDays = fullEmp.dailyLogs.filter((l) => l.status === 'P').length;
+        const halfDays = fullEmp.dailyLogs.filter((l) => l.status === 'HD').length;
+        const absentDays = fullEmp.dailyLogs.filter((l) => l.status === 'A').length;
+        const missedDays = fullEmp.dailyLogs.filter((l) => l.category === 'MISSED' && l.status !== 'H').length;
+
+        let overallStatus: 'P' | 'A' | 'M' | 'H' | 'HD' = 'P';
+        if (missedDays > 0) overallStatus = 'M';
+        else if (absentDays > presentDays + halfDays) overallStatus = 'A';
+        else if (halfDays > presentDays) overallStatus = 'HD';
+
+        return {
+          ...emp,
+          status: overallStatus,
+          octoberStatus:
+            overallStatus === 'M'
+              ? `Missed (${missedDays}) ! M`
+              : halfDays > 0
+              ? `Present (${presentDays}) • Half (${halfDays})`
+              : overallStatus === 'P'
+              ? `Present (${presentDays})`
+              : `Absent (${absentDays})`,
+        };
+      })
+    );
 
     // Keep metrics counts in sync
     this.metrics.update((m) => ({

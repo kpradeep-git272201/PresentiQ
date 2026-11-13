@@ -20,24 +20,32 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=Plus+Jakarta+Sans:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <!--
-    Apply the saved light/dark mode before first paint so dark-mode users do not
-    get a flash of the light theme while Angular boots. ThemeService keeps this
-    key in sync and re-applies the same classes on startup.
+    Apply the saved theme before first paint so users do not get a flash of
+    another theme while Angular boots. ThemeService keeps this key in sync and
+    re-applies the classes on startup and across logins/logouts.
   -->
   <script>
     (function () {
       try {
-        if (localStorage.getItem('app-theme-mode') === 'dark') {
+        var rawTheme = localStorage.getItem('presentiq_active_theme');
+        var theme = (rawTheme && rawTheme.replace(/['"]+/g, '')) || 'blue';
+        document.documentElement.classList.remove('theme-blue', 'theme-green', 'theme-purple', 'theme-orange', 'theme-red', 'theme-teal', 'theme-light');
+        document.documentElement.classList.add('theme-' + theme);
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark-mode');
+          document.documentElement.style.colorScheme = 'light';
+        } else {
           document.documentElement.classList.add('dark-mode');
+          document.documentElement.style.colorScheme = 'dark';
         }
       } catch (e) { }
     })();
   </script>
 
-<link rel="stylesheet" href="styles-W6CPB33C.css"></head>
+<link rel="stylesheet" href="styles-VOIGM5QN.css"></head>
 
 <body class="mat-typography">
   <app-root></app-root>
-<script src="polyfills-5CFQRCPP.js" type="module"></script><script src="main-LTR4QJRR.js" type="module"></script></body>
+<script src="polyfills-5CFQRCPP.js" type="module"></script><script src="main-S3ZJYUEH.js" type="module"></script></body>
 
 </html>

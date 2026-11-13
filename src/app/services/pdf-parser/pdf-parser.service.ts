@@ -19,7 +19,7 @@ export interface EmployeeWithLogs extends EmployeeDirectoryItem {
   dailyLogs: Array<{
     date: string;
     day: number;
-    status: 'P' | 'A' | 'H';
+    status: 'P' | 'A' | 'H' | 'HD';
     inTime: string;
     outTime: string;
     duration: string;
@@ -600,10 +600,11 @@ export class PdfParserService {
 
         const punch = punchesByDay.get(d);
         if (punch) {
+          const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(punch, settings);
           const logEntry = {
             date: dateStr,
             day: d,
-            status: punch.status,
+            status: effectiveStatus,
             inTime: punch.inTime,
             outTime: punch.outTime,
             duration: punch.duration,
@@ -628,12 +629,14 @@ export class PdfParserService {
       }
 
       const presentDays = dailyLogs.filter((l) => l.status === 'P').length;
+      const halfDays = dailyLogs.filter((l) => l.status === 'HD').length;
       const absentDays = dailyLogs.filter((l) => l.status === 'A').length;
       const missedDays = dailyLogs.filter((l) => l.category === 'MISSED' && l.status !== 'H').length;
 
-      let overallStatus: 'P' | 'A' | 'M' | 'H' = 'P';
+      let overallStatus: 'P' | 'A' | 'M' | 'H' | 'HD' = 'P';
       if (missedDays > 0) overallStatus = 'M';
-      else if (absentDays > presentDays) overallStatus = 'A';
+      else if (absentDays > presentDays + halfDays) overallStatus = 'A';
+      else if (halfDays > presentDays) overallStatus = 'HD';
 
       employees.push({
         id: String(i),
@@ -644,6 +647,8 @@ export class PdfParserService {
         octoberStatus:
           overallStatus === 'M'
             ? `Missed (${missedDays}) ! M`
+            : halfDays > 0
+            ? `Present (${presentDays}) • Half (${halfDays})`
             : overallStatus === 'P'
             ? `Present (${presentDays})`
             : `Absent (${absentDays})`,
@@ -734,12 +739,15 @@ export class PdfParserService {
             ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
             : '--';
 
+        const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(log, settings);
+        log.status = effectiveStatus;
+
         flattenedLogs.push({
           employeeName: emp.name,
           attendanceId: emp.attendanceId.replace('#', ''),
           designation: emp.designation,
           date: log.date,
-          status: log.status,
+          status: effectiveStatus,
           inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : (log.inTime || '--'),
           outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday ? '--' : 'Missing'),
           duration: exactDuration,
