@@ -3074,14 +3074,22 @@
 }
 
 .directory-table-scroll-wrapper {
-  height: clamp(380px, 58vh, 520px);
-  min-height: 340px;
-  max-height: 520px;
+  min-height: 540px;
+  max-height: clamp(580px, 72vh, 780px);
   overflow-y: auto;
   overflow-x: auto;
   flex: 1;
   margin: 0 -1.5rem;
   padding: 0 1.5rem;
+
+  @media (max-width: 768px) {
+    min-height: 380px;
+    max-height: 65vh;
+  }
+
+  .directory-scroll-table td {
+    padding: 0.62rem 0.75rem;
+  }
 
   &::-webkit-scrollbar {
     width: 6px;
