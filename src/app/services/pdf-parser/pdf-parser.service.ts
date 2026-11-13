@@ -504,6 +504,9 @@ export class PdfParserService {
           .replace(/\s*\(ng\)/gi, '')
           .replace(/\s+/g, ' ')
           .trim();
+        if (!designation) {
+          designation = 'Staff';
+        }
 
         if (orgSplit.length >= 2) {
           const tableSplit = orgSplit[1].split(/S\.No[\s\S]*?Duration/i);

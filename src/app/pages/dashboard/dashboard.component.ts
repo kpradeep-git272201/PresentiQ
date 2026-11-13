@@ -571,8 +571,29 @@ export class DashboardComponent implements OnInit {
 
   private populateDashboardState(payload: ParsedDashboardPayload): void {
     this.dailyMetrics.set(payload.dailyMetrics || []);
-    this.allEmployees.set(payload.employees || []);
-    this.detailedEmployees.set(payload.detailedEmployees || []);
+
+    const detailedList = payload.detailedEmployees || [];
+    const rawEmployees = payload.employees || [];
+    const normalizedEmployees: EmployeeDirectoryItem[] = rawEmployees.length > 0
+      ? rawEmployees.map((emp) => {
+          const detail = detailedList.find((d) => d.attendanceId === emp.attendanceId || d.name === emp.name);
+          return {
+            ...emp,
+            designation: (emp.designation && emp.designation.trim()) ? emp.designation : (detail?.designation || 'Staff'),
+            status: emp.status || detail?.status || 'P',
+          };
+        })
+      : detailedList.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          attendanceId: emp.attendanceId,
+          designation: (emp.designation && emp.designation.trim()) ? emp.designation : 'Staff',
+          status: emp.status || 'P',
+          octoberStatus: emp.octoberStatus,
+        }));
+
+    this.allEmployees.set(normalizedEmployees);
+    this.detailedEmployees.set(detailedList);
     this.allFlattenedLogs.set(payload.flattenedLogs || []);
     this.metrics.set(payload.metrics || this.emptyMetrics);
     this.kpis.set(payload.kpis || this.emptyKpis);
@@ -720,6 +741,7 @@ export class DashboardComponent implements OnInit {
 
         return {
           ...emp,
+          designation: (emp.designation && emp.designation.trim()) ? emp.designation : (fullEmp.designation || 'Staff'),
           status: overallStatus,
           octoberStatus:
             overallStatus === 'M'

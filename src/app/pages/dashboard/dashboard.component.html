@@ -864,6 +864,7 @@
             <table class="employee-table directory-scroll-table">
               <thead>
                 <tr>
+                  <th scope="col" class="sno-col text-center">S.NO.</th>
                   <th scope="col" (click)="sortDirectoryBy('name')" class="clickable-th">
                     <span>Employee Name</span>
                     <span class="sort-glyph">
@@ -892,18 +893,30 @@
                 </tr>
               </thead>
               <tbody>
-                @for (emp of directoryPaginatedEmployees(); track emp.attendanceId) {
+                @for (emp of directoryPaginatedEmployees(); track emp.attendanceId; let idx = $index) {
                   <tr class="clickable-emp-row" (click)="openEmployeeDetail(emp)">
+                    <td class="sno-cell text-center">{{ (directoryPage() - 1) * directoryPageSize() + idx + 1 }}</td>
                     <td class="emp-name-cell">
                       <span class="emp-link-name">{{ emp.name }}</span>
                     </td>
-                    <td class="emp-id-cell">#{{ emp.attendanceId }}</td>
-                    <td class="emp-desig-cell">{{ emp.designation }}</td>
+                    <td class="emp-id-cell">{{ emp.attendanceId.startsWith('#') ? emp.attendanceId : '#' + emp.attendanceId }}</td>
+                    <td class="emp-desig-cell">{{ emp.designation && emp.designation.trim() ? emp.designation : 'Staff' }}</td>
                     <td class="text-center">
-                      <span class="status-square-badge" [class.badge-p]="emp.status === 'P'"
-                        [class.badge-a]="emp.status === 'A'" [class.badge-m]="emp.status === 'M'"
-                        [class.badge-h]="emp.status === 'H'" [class.badge-hd]="emp.status === 'HD'">
-                        {{ emp.status === 'M' ? '! M' : emp.status }}
+                      <span class="pdf-status-badge"
+                        [class.status-p]="emp.status === 'P'"
+                        [class.status-hd]="emp.status === 'HD'"
+                        [class.status-h]="emp.status === 'H'"
+                        [class.status-a]="emp.status === 'A'"
+                        [class.status-m]="emp.status === 'M'"
+                        [title]="emp.status === 'P' ? 'Present' : emp.status === 'HD' ? 'Half Day' : emp.status === 'H' ? 'Holiday' : emp.status === 'M' ? 'Missed Punch' : 'Absent'">
+                        <span class="status-letter">{{ emp.status === 'M' ? '!' : emp.status }}</span>
+                        <span class="status-label">
+                          {{ emp.status === 'P' ? 'Present' :
+                             emp.status === 'HD' ? 'Half Day' :
+                             emp.status === 'H' ? 'Holiday' :
+                             emp.status === 'M' ? 'Missed' :
+                             emp.status === 'A' ? 'Absent' : (emp.status || 'P') }}
+                        </span>
                       </span>
                     </td>
                     <td class="text-center">
@@ -915,7 +928,7 @@
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="no-records-cell">No matching employee records found.</td>
+                    <td colspan="6" class="no-records-cell">No matching employee records found.</td>
                   </tr>
                 }
               </tbody>

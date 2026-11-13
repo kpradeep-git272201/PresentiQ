@@ -568,14 +568,28 @@ html.theme-light {
       border-bottom-color: #e2e8f0 !important;
     }
     td {
+      color: #334155 !important;
       border-bottom-color: #f1f5f9 !important;
+    }
+    .sno-cell {
+      color: #64748b !important;
+      font-weight: 600;
     }
     .emp-name-cell {
       color: #0f172a !important;
       font-weight: 600;
+
+      .emp-link-name {
+        color: #0f172a !important;
+      }
     }
     .emp-id-cell {
-      color: #475569 !important;
+      color: #0284c7 !important;
+      font-weight: 600;
+    }
+    .emp-desig-cell {
+      color: #334155 !important;
+      font-weight: 500;
     }
     .btn-view-logs,
     .view-calendar-btn {
@@ -585,6 +599,70 @@ html.theme-light {
       &:hover {
         background: #e0f2fe !important;
         border-color: #0284c7 !important;
+      }
+    }
+  }
+
+  // PDF Status Badges in Light Mode (Directory table + Drilldown table)
+  .pdf-status-badge {
+    &.status-p {
+      background: #dcfce7 !important;
+      border: 1px solid #86efac !important;
+      color: #166534 !important;
+      .status-letter {
+        background: #16a34a !important;
+        color: #ffffff !important;
+      }
+      .status-label {
+        color: #166534 !important;
+      }
+    }
+    &.status-hd {
+      background: #fef3c7 !important;
+      border: 1px solid #fde68a !important;
+      color: #92400e !important;
+      .status-letter {
+        background: #d97706 !important;
+        color: #ffffff !important;
+      }
+      .status-label {
+        color: #92400e !important;
+      }
+    }
+    &.status-h {
+      background: #f3e8ff !important;
+      border: 1px solid #d8b4fe !important;
+      color: #6b21a8 !important;
+      .status-letter {
+        background: #9333ea !important;
+        color: #ffffff !important;
+      }
+      .status-label {
+        color: #6b21a8 !important;
+      }
+    }
+    &.status-a {
+      background: #fee2e2 !important;
+      border: 1px solid #fca5a5 !important;
+      color: #991b1b !important;
+      .status-letter {
+        background: #dc2626 !important;
+        color: #ffffff !important;
+      }
+      .status-label {
+        color: #991b1b !important;
+      }
+    }
+    &.status-m {
+      background: #fef3c7 !important;
+      border: 1px solid #fde68a !important;
+      color: #b45309 !important;
+      .status-letter {
+        background: #d97706 !important;
+        color: #ffffff !important;
+      }
+      .status-label {
+        color: #b45309 !important;
       }
     }
   }
