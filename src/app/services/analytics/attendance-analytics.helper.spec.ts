@@ -280,5 +280,35 @@ describe('AttendanceAnalyticsHelper', () => {
               const holidayLog = { status: 'H', inTime: '--', outTime: '--', duration: '--', date: 'Oct 02, 2026' };
               expect(AttendanceAnalyticsHelper.categorizeLog(holidayLog, customSettings)).toBe('HOLIDAY');
             });
+
+            it('identifies attendance-marked dates accurately and excludes weekends, holidays, leaves, and missing punches', () => {
+              // Valid attended weekday
+              const attendedLog = { status: 'P', inTime: '09:40:42', outTime: '18:14:29', duration: '08:33:47', date: 'Oct 01, 2026' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(attendedLog)).toBe(true);
+
+              // Valid half-day weekday
+              const halfDayLog = { status: 'HD', inTime: '18:04:57', outTime: '18:05:08', duration: '00:00:11', date: 'Oct 08, 2026' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(halfDayLog)).toBe(true);
+
+              // Weekend (Saturday) - MUST be excluded
+              const weekendSat = { status: 'W', inTime: '--', outTime: '--', duration: '--', date: 'Oct 03, 2026' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(weekendSat)).toBe(false);
+
+              // Weekday Holiday (Gandhi Jayanti) - MUST be excluded
+              const holidayFri = { status: 'H', inTime: '--', outTime: '--', duration: '--', date: 'Oct 02, 2026', category: 'HOLIDAY' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(holidayFri)).toBe(false);
+
+              // Leave / Absent - MUST be excluded
+              const absentLog = { status: 'A', inTime: '--', outTime: '--', duration: '--', date: 'Oct 19, 2026' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(absentLog)).toBe(false);
+
+              // Missing punches / no attendance marked - MUST be excluded
+              const noPunchLog = { status: 'P', inTime: '--', outTime: '--', duration: '--', date: 'Oct 12, 2026' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(noPunchLog)).toBe(false);
+
+              // Missing out-punch anomaly - MUST be excluded
+              const missedOutLog = { status: 'P', inTime: '09:44:11', outTime: 'Missing', duration: '--', date: 'Oct 29, 2026' };
+              expect(AttendanceAnalyticsHelper.isAttendanceMarked(missedOutLog)).toBe(false);
+            });
           });
         });

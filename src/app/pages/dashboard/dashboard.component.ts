@@ -345,21 +345,37 @@ export class DashboardComponent implements OnInit {
     if (!emp || !emp.dailyLogs) return 0;
     const settings = this.settingsService.settings();
     const minHours = settings.minWorkHours || 8.5;
-    const workDays = emp.dailyLogs.filter(
-      (l) => l.status !== 'H' && l.status !== 'W' && !AttendanceAnalyticsHelper.isDateWeekend(l.date)
+    // Calculate scheduled hours only for dates on which attendance has been marked.
+    // Exclude leave days, weekends, and dates on which attendance has not been marked.
+    const attendedDays = emp.dailyLogs.filter((l) =>
+      AttendanceAnalyticsHelper.isAttendanceMarked(l)
     ).length;
-    return Math.round(workDays * minHours);
+    const total = attendedDays * minHours;
+    return total % 1 === 0 ? total : Number(total.toFixed(1));
   });
 
   employeeWorkedHours = computed(() => {
     const emp = this.selectedEmployee();
     if (!emp || !emp.dailyLogs) return 0;
     let totalSec = 0;
+    // Calculate worked hours based only on the dates counted in Total Scheduled Hours.
+    // Exclude leave days, weekends, and dates without attendance.
     for (const l of emp.dailyLogs) {
-      const isW = l.status === 'W' || AttendanceAnalyticsHelper.isDateWeekend(l.date);
-      // Weekend Worked Hours me complete nhi hoga
-      if (!isW && l.status === 'P' && l.duration && l.duration !== '--') {
-        totalSec += AttendanceAnalyticsHelper.parseDurationToSeconds(l.duration);
+      if (AttendanceAnalyticsHelper.isAttendanceMarked(l)) {
+        let durSec = AttendanceAnalyticsHelper.parseDurationToSeconds(l.duration || '');
+        if (
+          durSec === 0 &&
+          l.inTime &&
+          l.outTime &&
+          l.outTime !== '--' &&
+          l.outTime !== 'Missing' &&
+          !l.outTime.includes('0000-00-00')
+        ) {
+          durSec = AttendanceAnalyticsHelper.parseDurationToSeconds(
+            AttendanceAnalyticsHelper.computeDurationBetween(l.inTime, l.outTime)
+          );
+        }
+        totalSec += durSec;
       }
     }
     return Number((totalSec / 3600).toFixed(1));

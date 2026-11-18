@@ -115,6 +115,64 @@ export class AttendanceAnalyticsHelper {
   }
 
   /**
+   * Determines whether an employee has marked attendance on a given day.
+   *
+   * Business Logic Rules:
+   * 1. Total Scheduled Hours: Calculate scheduled hours only for dates on which the employee's attendance has been marked.
+   *    Exclude leave days, weekends, and dates on which attendance has not been marked.
+   * 2. Total Worked Hours: Calculate worked hours based only on the dates counted in Total Scheduled Hours.
+   *    Exclude leave days, weekends, and dates without attendance.
+   * 3. Worked Hours reflects the actual working hours recorded for attended days.
+   */
+  static isAttendanceMarked(
+    log?: {
+      status?: string;
+      inTime?: string;
+      outTime?: string;
+      duration?: string;
+      date?: string;
+      day?: number;
+      isWeekend?: boolean;
+      category?: string;
+    }
+  ): boolean {
+    if (!log) return false;
+
+    // Rule 1: Exclude weekends (Saturday / Sunday)
+    const isWeekend =
+      log.status === 'W' ||
+      Boolean(log.isWeekend) ||
+      this.isDateWeekend(log.date || log.day, 'October', 2026);
+    if (isWeekend) return false;
+
+    // Rule 2: Exclude leave / absent days
+    const rawStatus = (log.status || '').toUpperCase().trim();
+    if (rawStatus === 'A') return false;
+
+    // Rule 3: Exclude scheduled weekday holidays / gazetted off
+    if (rawStatus === 'H' || (log.category && log.category.toUpperCase() === 'HOLIDAY')) {
+      return false;
+    }
+
+    // Rule 4: Exclude dates on which attendance has not been marked
+    if (!log.inTime || log.inTime === '--' || log.inTime.includes('0000-00-00')) {
+      return false;
+    }
+
+    // Rule 5: Must have recorded working hours / valid duration for attended days
+    let durSec = this.parseDurationToSeconds(log.duration || '');
+    if (durSec === 0 && log.inTime && log.outTime && log.outTime !== '--' && log.outTime !== 'Missing' && !log.outTime.includes('0000-00-00')) {
+      const inSec = this.parseTimeToSeconds(log.inTime);
+      const outSec = this.parseTimeToSeconds(log.outTime);
+      if (outSec > inSec) {
+        durSec = outSec - inSec;
+      }
+    }
+
+    return durSec > 0;
+  }
+
+  /**
    * Determine attendance status ('P' | 'A' | 'H' | 'HD' | 'W') based on actual calendar date,
    * worked duration, and settings.
    *
