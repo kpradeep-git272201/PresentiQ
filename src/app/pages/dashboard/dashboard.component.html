@@ -1075,19 +1075,23 @@
                   <td class="desig-cell">{{ row.designation }}</td>
                   <td class="date-cell">{{ row.date }}</td>
 
-                  <!-- Real PDF Status Column (P, HD, H, A) -->
+                  <!-- Real PDF Status Column (P, HD, H, A, W) -->
                   <td class="status-cell">
                     <span class="pdf-status-badge" [class.status-p]="row.status === 'P'"
                       [class.status-hd]="row.status === 'HD'"
-                      [class.status-h]="row.status === 'H'" [class.status-a]="row.status === 'A'" [title]="row.status === 'P' ? 'Present' :
+                      [class.status-h]="row.status === 'H'"
+                      [class.status-w]="row.status === 'W'"
+                      [class.status-a]="row.status === 'A'" [title]="row.status === 'P' ? 'Present' :
                               row.status === 'HD' ? 'Half Day (< ' + currentHalfDayHours() + 'h duration)' :
                               row.status === 'H' ? 'Holiday' :
+                              row.status === 'W' ? 'Weekend' :
                               'Absent'">
                       <span class="status-letter">{{ row.status }}</span>
                       <span class="status-label">
                         {{ row.status === 'P' ? 'Present' :
                         row.status === 'HD' ? 'Half Day' :
                         row.status === 'H' ? 'Holiday' :
+                        row.status === 'W' ? 'Weekend' :
                         row.status === 'A' ? 'Absent' : 'Staff' }}
                       </span>
                     </span>
@@ -1099,13 +1103,16 @@
                       [class.badge-ontime-complete]="row.category === 'COMPLETED_ONTIME'"
                       [class.badge-early-depart]="row.category === 'INCOMPLETE_ONTIME'"
                       [class.badge-late-incom]="row.category === 'INCOMPLETE_LATE'"
-                      [class.badge-missed]="row.category === 'MISSED'" [class.badge-holiday]="row.category === 'HOLIDAY'">
+                      [class.badge-missed]="row.category === 'MISSED'"
+                      [class.badge-holiday]="row.category === 'HOLIDAY'"
+                      [class.badge-weekend]="row.category === 'WEEKEND'">
                       {{ row.category === 'COMPLETED_LATE' ? 'Late - Complete' :
                       row.category === 'COMPLETED_ONTIME' ? 'On-Time Complete' :
                       row.category === 'INCOMPLETE_ONTIME' ? 'Early Departure' :
                       row.category === 'INCOMPLETE_LATE' ? 'Late - Incomplete' :
                       row.category === 'MISSED' ? 'Missed Punch' :
-                      row.category === 'HOLIDAY' ? 'Holiday' : 'Total Staff' }}
+                      row.category === 'HOLIDAY' ? 'Holiday' :
+                      row.category === 'WEEKEND' ? 'Weekend' : 'Total Staff' }}
                     </span>
                   </td>
 
@@ -1234,7 +1241,8 @@
                 <span class="cal-legend-item"><span class="box-sq box-p">P</span>Present (P)</span>
                 <span class="cal-legend-item"><span class="box-sq box-hd">HD</span>Half Day (HD)</span>
                 <span class="cal-legend-item"><span class="box-sq box-a">A</span>Absent (A)</span>
-                <span class="cal-legend-item"><span class="box-sq box-h">H</span>Weekend / Holiday (H)</span>
+                <span class="cal-legend-item"><span class="box-sq box-h">H</span>Holiday (H)</span>
+                <span class="cal-legend-item"><span class="box-sq box-w">W</span>Weekend (W)</span>
                 <span class="cal-legend-item"><span class="box-sq box-anomaly">!M</span>Anomaly (!M)</span>
               </div>
             </div>
@@ -1243,17 +1251,23 @@
             <div class="calendar-grid-cells">
               @for (log of selectedEmployee()?.dailyLogs; track log.day) {
                 <div class="cal-day-cell"
-                  [class.cell-weekend]="log.status === 'H'"
+                  [class.cell-weekend]="log.status === 'W'"
+                  [class.cell-holiday]="log.status === 'H'"
                   [class.cell-halfday]="log.status === 'HD'"
-                  [class.cell-anomaly]="log.category === 'MISSED' && log.status !== 'H'"
+                  [class.cell-anomaly]="log.category === 'MISSED' && log.status !== 'H' && log.status !== 'W'"
                   [class.cell-absent]="log.status === 'A'">
                   <div class="day-cell-top">
-                    <span class="day-num">{{ log.day }}</span>
+                    <span class="day-date-wrap">
+                      <span class="day-weekday">{{ getWeekdayAbbr(log.date || log.day) }}</span>
+                      <span class="day-num">{{ log.day }}</span>
+                    </span>
                     <span class="day-badge" [class.badge-p]="log.status === 'P' && log.category !== 'MISSED'"
                       [class.badge-hd]="log.status === 'HD'"
-                      [class.badge-a]="log.status === 'A'" [class.badge-h]="log.status === 'H'"
-                      [class.badge-anomaly]="log.category === 'MISSED' && log.status !== 'H'">
-                      {{ log.category === 'MISSED' && log.status !== 'H' ? '! M' : log.status }}
+                      [class.badge-a]="log.status === 'A'"
+                      [class.badge-h]="log.status === 'H'"
+                      [class.badge-w]="log.status === 'W'"
+                      [class.badge-anomaly]="log.category === 'MISSED' && log.status !== 'H' && log.status !== 'W'">
+                      {{ log.category === 'MISSED' && log.status !== 'H' && log.status !== 'W' ? '! M' : log.status }}
                     </span>
                   </div>
                   <div class="day-cell-timing">
@@ -1265,7 +1279,7 @@
                       <span class="timing-halfday">
                         {{ log.inTime }} - {{ log.outTime }}
                       </span>
-                    } @else if (log.category === 'MISSED' && log.status !== 'H') {
+                    } @else if (log.category === 'MISSED' && log.status !== 'H' && log.status !== 'W') {
                       <span class="timing-anomaly">
                         {{ log.inTime }} - No Record
                       </span>
@@ -1273,9 +1287,13 @@
                       <span class="timing-absent">
                         0.0 hrs
                       </span>
+                    } @else if (log.status === 'W') {
+                      <span class="timing-weekend">
+                        Weekend
+                      </span>
                     } @else if (log.status === 'H') {
                       <span class="timing-holiday">
-                        Weekend
+                        Holiday
                       </span>
                     }
                   </div>

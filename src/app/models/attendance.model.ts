@@ -36,7 +36,7 @@ export interface EmployeeDirectoryItem {
   name: string;
   attendanceId: string;
   designation: string;
-  status: 'P' | 'A' | 'M' | 'H' | 'HD'; // P = Present, A = Absent, M = Missed Punch, H = Holiday, HD = Half Day
+  status: 'P' | 'A' | 'M' | 'H' | 'HD' | 'W'; // P = Present, A = Absent, M = Missed Punch, H = Holiday, HD = Half Day, W = Weekend
   octoberStatus?: string;
 }
 

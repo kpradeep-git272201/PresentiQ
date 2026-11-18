@@ -69,39 +69,97 @@ export class AttendanceAnalyticsHelper {
   }
 
   /**
-   * Determine attendance status ('P' | 'A' | 'H' | 'HD') based on worked duration and settings.
+   * Returns short weekday abbreviation: 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat'
+   * Guaranteed accurate calendar lookup based on date/day.
+   */
+  static getWeekdayName(dateStrOrDay?: string | number, monthName?: string, year?: number): string {
+    const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    if (!dateStrOrDay) return '';
+
+    if (typeof dateStrOrDay === 'number' && monthName && year) {
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      const mIdx = monthNames.findIndex((m) => m.toLowerCase().startsWith(monthName.substring(0, 3).toLowerCase()));
+      if (mIdx !== -1) {
+        return WEEKDAY_NAMES[new Date(year, mIdx, dateStrOrDay).getDay()] || '';
+      }
+    }
+
+    if (typeof dateStrOrDay === 'string') {
+      const match = dateStrOrDay.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i);
+      if (match) {
+        const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const mIdx = monthNames.indexOf(match[1].toLowerCase().substring(0, 3));
+        const day = parseInt(match[2], 10);
+        const y = parseInt(match[3], 10);
+        if (mIdx !== -1) {
+          return WEEKDAY_NAMES[new Date(y, mIdx, day).getDay()] || '';
+        }
+      }
+      const parsed = new Date(dateStrOrDay);
+      if (!isNaN(parsed.getTime())) {
+        return WEEKDAY_NAMES[parsed.getDay()] || '';
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Check if a given date or day is a weekend (Saturday or Sunday) based on actual calendar.
+   */
+  static isDateWeekend(dateStrOrDay?: string | number, monthName?: string, year?: number): boolean {
+    const weekday = this.getWeekdayName(dateStrOrDay, monthName, year);
+    return weekday === 'Sat' || weekday === 'Sun';
+  }
+
+  /**
+   * Determine attendance status ('P' | 'A' | 'H' | 'HD' | 'W') based on actual calendar date,
+   * worked duration, and settings.
    *
    * Business Logic Rules:
-   * 1. 'H' (Holiday): Scheduled holiday/off with no punches
-   * 2. 'A' (Absent): Explicitly absent with no punches
-   * 3. 'HD' (Half Day): If worked duration is strictly less than halfDayWorkHours threshold (default: 6.0 hours, configurable by Admin)
-   * 4. 'P' (Present): Worked duration meets or exceeds halfDayWorkHours threshold (e.g. >= 6.0 hours)
+   * 1. 'W' (Weekend): Saturday or Sunday with no punches (calculated dynamically from calendar)
+   * 2. 'H' (Holiday): Scheduled weekday holiday/off with no punches (e.g. Gandhi Jayanti, Maharishi Valmiki Jayanti)
+   * 3. 'A' (Absent): Explicitly absent on a weekday with no punches
+   * 4. 'HD' (Half Day): If worked duration is strictly less than halfDayWorkHours threshold (default: 6.0 hours)
+   * 5. 'P' (Present): Worked duration meets or exceeds halfDayWorkHours threshold (e.g. >= 6.0 hours)
+   *
+   * Note: Weekdays (Monday through Friday) MUST NEVER be marked as 'W' (Weekend).
    */
   static determineLogStatus(
-    log: { status?: string; inTime?: string; outTime?: string; duration?: string },
+    log: { status?: string; inTime?: string; outTime?: string; duration?: string; date?: string; isWeekend?: boolean; day?: number },
     settings?: ShiftSettings
-  ): 'P' | 'A' | 'H' | 'HD' {
+  ): 'P' | 'A' | 'H' | 'HD' | 'W' {
     const rawStatus = (log.status || '').toUpperCase().trim();
+    const isWeekend = Boolean(
+      (log.date && this.isDateWeekend(log.date)) ||
+      (log.day && this.isDateWeekend(log.day, 'October', 2026)) ||
+      (log.isWeekend && !log.date) ||
+      rawStatus === 'W'
+    );
 
-    const hasValidPunch =
-      Boolean(log.inTime) &&
-      log.inTime !== '--' &&
-      !log.inTime!.includes('0000-00-00') &&
-      Boolean(log.outTime) &&
-      log.outTime !== '--' &&
-      log.outTime !== 'Missing' &&
-      !log.outTime!.includes('0000-00-00');
+    const hasInTime = Boolean(log.inTime) && log.inTime !== '--' && !log.inTime!.includes('0000-00-00');
+    const hasOutTime = Boolean(log.outTime) && log.outTime !== '--' && log.outTime !== 'Missing' && !log.outTime!.includes('0000-00-00');
+    const hasAnyPunch = hasInTime || hasOutTime;
+    const hasValidPunch = hasInTime && hasOutTime;
 
-    // Keep scheduled Holiday if no punches
-    if (rawStatus === 'H' && !hasValidPunch) {
-      return 'H';
+    // Rule 1: Saturday and Sunday without valid punches is ALWAYS 'W' (Weekend)
+    if (isWeekend && !hasValidPunch) {
+      return 'W';
     }
 
-    // Keep Absent if no punches
-    if (rawStatus === 'A' && !hasValidPunch) {
-      return 'A';
+    // Rule 2: Weekdays (Monday to Friday) MUST NEVER be marked as 'W' (Weekend)
+    if (!isWeekend && !hasValidPunch) {
+      if (rawStatus === 'A') return 'A';
+      // If there is any punch (e.g. In-time present but Out-time missing) or marked Present, it is Present (Anomaly/Missed out punch)
+      if (hasAnyPunch || rawStatus === 'P') {
+        return 'P';
+      }
+      return 'H'; // Scheduled weekday holiday / gazetted off
     }
 
+    // Rule 3: Valid punches on either weekend or weekday
     // Calculate worked duration in seconds
     let durSec = this.parseDurationToSeconds(log.duration || '');
     if (durSec === 0 && hasValidPunch && log.inTime && log.outTime) {
@@ -123,9 +181,10 @@ export class AttendanceAnalyticsHelper {
       return 'P';
     }
 
-    if (rawStatus === 'H') return 'H';
+    if (isWeekend) return 'W';
     if (rawStatus === 'A') return 'A';
-    return rawStatus === 'HD' ? 'HD' : 'P';
+    if (hasAnyPunch || rawStatus === 'P') return 'P';
+    return 'H';
   }
 
   /**
@@ -134,18 +193,34 @@ export class AttendanceAnalyticsHelper {
    * Business Logic & KPI Rules:
    * 1. Total Employees: Unique employee count from the uploaded PDF
    * 2. P (Present): Minimum 8.5 hours (or settings.minWorkHours) duration required
-   * 3. H (Holiday): Scheduled holiday/off (e.g. weekend or festival holiday)
-   * 4. A (Absent): Marked absent or missing punch
-   * 5. Completed Working Hours (COMPLETED_ONTIME): In <= 09:00:00 AND completed required hours
-   * 6. Incompleted Working Hours (INCOMPLETE_ONTIME): In <= 09:00:00 AND failed required hours
-   * 7. Late Entry & Completed (COMPLETED_LATE): In > 09:00:00 BUT completed required hours
-   * 8. Late Entry & Incompleted (INCOMPLETE_LATE): In > 09:00:00 AND failed required hours
-   * 9. Missed / Absent (MISSED): Absent ('A') or invalid/missing punches
+   * 3. W (Weekend): Saturday / Sunday (not counted in completed shift or worked hours)
+   * 4. H (Holiday): Scheduled weekday holiday/off (e.g. festival holiday on a weekday)
+   * 5. A (Absent): Marked absent or missing punch
+   * 6. Completed Working Hours (COMPLETED_ONTIME): In <= 09:00:00 AND completed required hours
+   * 7. Incompleted Working Hours (INCOMPLETE_ONTIME): In <= 09:00:00 AND failed required hours
+   * 8. Late Entry & Completed (COMPLETED_LATE): In > 09:00:00 BUT completed required hours
+   * 9. Late Entry & Incompleted (INCOMPLETE_LATE): In > 09:00:00 AND failed required hours
+   * 10. Missed / Absent (MISSED): Absent ('A') or invalid/missing punches
    */
   static categorizeLog(
-    log: { status: string; inTime: string; outTime: string; duration: string },
+    log: { status?: string; inTime?: string; outTime?: string; duration?: string; date?: string; isWeekend?: boolean; day?: number },
     settings?: ShiftSettings
-  ): 'COMPLETED_ONTIME' | 'INCOMPLETE_ONTIME' | 'COMPLETED_LATE' | 'INCOMPLETE_LATE' | 'MISSED' | 'HOLIDAY' {
+  ): AttendanceCategory {
+    const isWeekend = Boolean(
+      (log.date && this.isDateWeekend(log.date)) ||
+      (log.day && this.isDateWeekend(log.day, 'October', 2026)) ||
+      (log.isWeekend && !log.date) ||
+      (log.status === 'W')
+    );
+
+    // Dynamic Weekend Rule:
+    // Saturday and Sunday are categorized as 'WEEKEND'.
+    // Weekends do NOT complete regular shifts or add to completed working hours.
+    if (isWeekend) {
+      return 'WEEKEND';
+    }
+
+    // Weekdays are NEVER categorized as WEEKEND.
     const hasInvalidPunch =
       !log.outTime ||
       log.outTime.includes('0000-00-00') ||
@@ -156,14 +231,18 @@ export class AttendanceAnalyticsHelper {
       log.inTime === '--' ||
       log.inTime.toLowerCase().includes('missing');
 
-    // If status is 'H' with no valid punches, it represents a scheduled holiday off (e.g. weekend or national holiday)
-    if (log.status === 'H' && hasInvalidPunch) {
-      return 'HOLIDAY';
+    const hasAnyPunch =
+      Boolean(log.inTime && log.inTime !== '--' && !log.inTime.includes('0000-00-00')) ||
+      Boolean(log.outTime && log.outTime !== '--' && !log.outTime.includes('0000-00-00') && !log.outTime.toLowerCase().includes('missing'));
+
+    // Missed punch check: Absent ('A'), or any punch exists but invalid punch (e.g. In exists, Out missing), or status is 'P' with invalid punch
+    if (log.status === 'A' || (hasInvalidPunch && (hasAnyPunch || log.status === 'P'))) {
+      return 'MISSED';
     }
 
-    // Missed punch check: Absent ('A') or missing In/Out time
-    if (log.status === 'A' || hasInvalidPunch) {
-      return 'MISSED';
+    // If status is 'H' (or no status) with no punches at all on a weekday, it represents a scheduled weekday holiday off
+    if (hasInvalidPunch && !hasAnyPunch) {
+      return 'HOLIDAY';
     }
 
     // Resolve base and effective shift timings
@@ -208,11 +287,11 @@ export class AttendanceAnalyticsHelper {
     const minHours = settings?.minWorkHours ?? 8.5;
     const requiredWorkSeconds = minHours * 3600;
 
-    const inSeconds = this.parseTimeToSeconds(log.inTime);
-    const outSeconds = this.parseTimeToSeconds(log.outTime);
+    const inSeconds = this.parseTimeToSeconds(log.inTime || '');
+    const outSeconds = this.parseTimeToSeconds(log.outTime || '');
 
     // Duration in seconds: parse duration or calculate from in/out
-    let durationSeconds = this.parseDurationToSeconds(log.duration);
+    let durationSeconds = this.parseDurationToSeconds(log.duration || '');
     if (durationSeconds === 0 && outSeconds > inSeconds) {
       durationSeconds = outSeconds - inSeconds;
     }

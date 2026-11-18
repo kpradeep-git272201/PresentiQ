@@ -243,14 +243,42 @@ describe('AttendanceAnalyticsHelper', () => {
               expect(AttendanceAnalyticsHelper.determineLogStatus(log4h45m, custom5hSettings)).toBe('HD');
             });
 
-            it('retains H for scheduled holiday without punches', () => {
-              const logHoliday = { status: 'H', inTime: '--', outTime: '--', duration: '--' };
+            it('retains H for scheduled weekday holiday without punches', () => {
+              const logHoliday = { status: 'H', inTime: '--', outTime: '--', duration: '--', date: 'Oct 02, 2026' };
               expect(AttendanceAnalyticsHelper.determineLogStatus(logHoliday)).toBe('H');
+            });
+
+            it('returns W for weekend without punches', () => {
+              const logWeekendSat = { status: 'H', inTime: '--', outTime: '--', duration: '--', date: 'Oct 03, 2026' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(logWeekendSat)).toBe('W');
+
+              const logWeekendSun = { status: 'H', inTime: '--', outTime: '--', duration: '--', date: 'Oct 04, 2026' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(logWeekendSun)).toBe('W');
+
+              const logWeekendW = { status: 'W', inTime: '--', outTime: '--', duration: '--' };
+              expect(AttendanceAnalyticsHelper.determineLogStatus(logWeekendW)).toBe('W');
             });
 
             it('retains A for absent without punches', () => {
               const logAbsent = { status: 'A', inTime: '--', outTime: '--', duration: '--' };
               expect(AttendanceAnalyticsHelper.determineLogStatus(logAbsent)).toBe('A');
+            });
+
+            it('correctly identifies weekend dates', () => {
+              expect(AttendanceAnalyticsHelper.isDateWeekend('Oct 02, 2026')).toBe(false); // Friday
+              expect(AttendanceAnalyticsHelper.isDateWeekend('Oct 03, 2026')).toBe(true);  // Saturday
+              expect(AttendanceAnalyticsHelper.isDateWeekend('Oct 04, 2026')).toBe(true);  // Sunday
+              expect(AttendanceAnalyticsHelper.isDateWeekend('Oct 05, 2026')).toBe(false); // Monday
+              expect(AttendanceAnalyticsHelper.isDateWeekend(3, 'October', 2026)).toBe(true);
+              expect(AttendanceAnalyticsHelper.isDateWeekend(2, 'October', 2026)).toBe(false);
+            });
+
+            it('categorizes weekend as WEEKEND and weekday holiday as HOLIDAY', () => {
+              const weekendLog = { status: 'W', inTime: '--', outTime: '--', duration: '--', date: 'Oct 03, 2026' };
+              expect(AttendanceAnalyticsHelper.categorizeLog(weekendLog, customSettings)).toBe('WEEKEND');
+
+              const holidayLog = { status: 'H', inTime: '--', outTime: '--', duration: '--', date: 'Oct 02, 2026' };
+              expect(AttendanceAnalyticsHelper.categorizeLog(holidayLog, customSettings)).toBe('HOLIDAY');
             });
           });
         });

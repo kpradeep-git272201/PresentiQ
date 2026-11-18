@@ -8,7 +8,7 @@ import {
   DailyAttendanceMetric,
   DetailedDashboardMetrics,
 } from '../../models/attendance.model';
-import { DrilldownRow, AttendanceKPIs } from '../../models/drilldown.model';
+import { DrilldownRow, AttendanceKPIs, AttendanceCategory } from '../../models/drilldown.model';
 import { SettingsService } from '../settings/settings.service';
 import { AttendanceAnalyticsHelper } from '../analytics/attendance-analytics.helper';
 
@@ -19,12 +19,13 @@ export interface EmployeeWithLogs extends EmployeeDirectoryItem {
   dailyLogs: Array<{
     date: string;
     day: number;
-    status: 'P' | 'A' | 'H' | 'HD';
+    status: 'P' | 'A' | 'H' | 'HD' | 'W';
     inTime: string;
     outTime: string;
     duration: string;
     lateDuration?: string;
-    category?: string;
+    category?: AttendanceCategory | string;
+    isWeekend?: boolean;
   }>;
 }
 
@@ -603,30 +604,37 @@ export class PdfParserService {
 
         const punch = punchesByDay.get(d);
         if (punch) {
-          const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(punch, settings);
+          const punchWithDate = { ...punch, date: dateStr, day: d, isWeekend };
+          const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(punchWithDate, settings);
           const logEntry = {
             date: dateStr,
             day: d,
-            status: effectiveStatus,
+            status: isWeekend && (!punch.inTime || punch.inTime === '--') ? ('W' as const) : effectiveStatus,
             inTime: punch.inTime,
             outTime: punch.outTime,
             duration: punch.duration,
+            isWeekend,
           };
-          const category = AttendanceAnalyticsHelper.categorizeLog(logEntry, settings);
+          const category = isWeekend
+            ? 'WEEKEND'
+            : AttendanceAnalyticsHelper.categorizeLog(logEntry, settings);
           dailyLogs.push({
             ...logEntry,
             category,
           });
         } else {
-          // If days after report generation (e.g. days 30, 31) or weekend
+          // If days after report generation (e.g. days 30, 31) or weekend or holiday
+          const status = isWeekend ? ('W' as const) : ('H' as const);
+          const category = isWeekend ? 'WEEKEND' : 'HOLIDAY';
           dailyLogs.push({
             date: dateStr,
             day: d,
-            status: 'H',
+            status,
             inTime: '--',
             outTime: '--',
             duration: '--',
-            category: 'HOLIDAY',
+            category,
+            isWeekend,
           });
         }
       }
@@ -634,7 +642,7 @@ export class PdfParserService {
       const presentDays = dailyLogs.filter((l) => l.status === 'P').length;
       const halfDays = dailyLogs.filter((l) => l.status === 'HD').length;
       const absentDays = dailyLogs.filter((l) => l.status === 'A').length;
-      const missedDays = dailyLogs.filter((l) => l.category === 'MISSED' && l.status !== 'H').length;
+      const missedDays = dailyLogs.filter((l) => l.category === 'MISSED' && l.status !== 'H' && l.status !== 'W').length;
 
       let overallStatus: 'P' | 'A' | 'M' | 'H' | 'HD' = 'P';
       if (missedDays > 0) overallStatus = 'M';
@@ -725,6 +733,7 @@ export class PdfParserService {
         }
 
         const isHoliday = cat === 'HOLIDAY';
+        const isWeekend = cat === 'WEEKEND' || log.status === 'W' || log.isWeekend;
         const isLate = cat === 'COMPLETED_LATE' || cat === 'INCOMPLETE_LATE';
         const lateMins = isLate
           ? AttendanceAnalyticsHelper.calculateLateMinutes(
@@ -752,11 +761,12 @@ export class PdfParserService {
           date: log.date,
           status: effectiveStatus,
           inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : (log.inTime || '--'),
-          outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday ? '--' : 'Missing'),
+          outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday || isWeekend ? '--' : 'Missing'),
           duration: exactDuration,
           lateDuration: lateMins > 0 ? `${lateMins} mins` : (log.lateDuration || '--'),
           category: cat,
           isLate,
+          isWeekend,
         });
       });
     });
@@ -768,16 +778,17 @@ export class PdfParserService {
     kpis.missedEmployees = uniqueMissed.size;
 
     const dailyMetrics: DailyAttendanceMetric[] = [];
+    const monthIndex = MONTH_NAMES.indexOf(monthInfo.monthName);
     for (let day = 1; day <= daysInMonth; day++) {
       let present = 0;
       let absent = 0;
-      let isWeekend = false;
+      const dayOfWeek = new Date(monthInfo.year, monthIndex, day).getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
       detailedEmployees.forEach((emp) => {
         const log = emp.dailyLogs?.find((l) => l.day === day);
         if (log) {
-          if (log.status === 'H') isWeekend = true;
-          else if (log.status === 'P') present++;
+          if (log.status === 'P') present++;
           else if (log.status === 'A') absent++;
         }
       });

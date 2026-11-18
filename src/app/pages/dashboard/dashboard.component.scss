@@ -1467,6 +1467,17 @@
     }
   }
 
+  &.status-w {
+    background: rgba(14, 165, 233, 0.14);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #38bdf8;
+
+    .status-letter {
+      background: #0284c7;
+      color: #ffffff;
+    }
+  }
+
   &.status-a {
     background: rgba(239, 68, 68, 0.14);
     border: 1px solid rgba(239, 68, 68, 0.35);
@@ -1966,6 +1977,17 @@
       }
     }
 
+    &.status-w {
+      background: rgba(14, 165, 233, 0.14);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+
+      .status-letter {
+        background: #0284c7;
+        color: #ffffff;
+      }
+    }
+
     &.status-a {
       background: rgba(239, 68, 68, 0.14);
       border: 1px solid rgba(239, 68, 68, 0.35);
@@ -2049,6 +2071,12 @@
       background: rgba(168, 85, 247, 0.18);
       border: 1px solid rgba(168, 85, 247, 0.35);
       color: #c084fc;
+    }
+
+    &.badge-weekend {
+      background: rgba(14, 165, 233, 0.16);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
     }
   }
 
@@ -2397,9 +2425,15 @@
     }
 
     &.box-h {
-      background: rgba(100, 116, 139, 0.2);
-      border: 1px solid #64748b;
-      color: #cbd5e1;
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.6);
+      color: #c084fc;
+    }
+
+    &.box-w {
+      background: rgba(14, 165, 233, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.6);
+      color: #38bdf8;
     }
 
     &.box-anomaly {
@@ -2429,7 +2463,20 @@
 
   &.cell-weekend {
     background: rgba(15, 23, 42, 0.4);
-    opacity: 0.75;
+    opacity: 0.8;
+
+    .day-weekday {
+      color: #38bdf8;
+    }
+  }
+
+  &.cell-holiday {
+    background: rgba(168, 85, 247, 0.08);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+
+    .day-weekday {
+      color: #c084fc;
+    }
   }
 
   &.cell-halfday {
@@ -2450,6 +2497,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  .day-date-wrap {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+
+    .day-weekday {
+      font-size: 0.58rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .day-num {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+  }
 
   .day-num {
     font-size: 0.75rem;
@@ -2479,8 +2546,13 @@
     }
 
     &.badge-h {
-      background: rgba(100, 116, 139, 0.2);
-      color: #cbd5e1;
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+    }
+
+    &.badge-w {
+      background: rgba(14, 165, 233, 0.2);
+      color: #38bdf8;
     }
 
     &.badge-anomaly {
@@ -2514,8 +2586,16 @@
     color: #f87171;
   }
 
+  .timing-weekend {
+    color: #38bdf8;
+    font-size: 0.58rem;
+    font-weight: 500;
+  }
+
   .timing-holiday {
-    color: #64748b;
+    color: #c084fc;
+    font-size: 0.58rem;
+    font-weight: 500;
   }
 }
 

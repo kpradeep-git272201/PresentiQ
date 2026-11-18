@@ -51,11 +51,17 @@ describe('PdfParserService - Strict MoPR Report Format Enforcement', () => {
 
       // Verify Aakash Jaiswal
       const aakash = payload.detailedEmployees.find((e) => e.name.includes('Aakash Jaiswal'));
+      console.log('Aakash 31 days:');
+      aakash?.dailyLogs.forEach(l => {
+        const d = new Date(l.date).getDay();
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        console.log(`Day ${l.day} (${dayNames[d]} ${l.date}): status=${l.status}, cat=${l.category}, in=${l.inTime}, out=${l.outTime}`);
+      });
       expect(aakash).toBeDefined();
       expect(aakash?.roleId).toBe('182210');
       expect(aakash?.designation).toContain('Tester');
 
-      // Verify Aakash Jaiswal's Day 2 and Day 3 Holiday
+      // Verify Aakash Jaiswal's Day 2 (Friday Holiday) and Day 3 (Saturday Weekend)
       const aakashDay2 = aakash?.dailyLogs.find((l) => l.day === 2);
       expect(aakashDay2).toBeDefined();
       expect(aakashDay2?.status).toBe('H');
@@ -63,14 +69,19 @@ describe('PdfParserService - Strict MoPR Report Format Enforcement', () => {
 
       const aakashDay3 = aakash?.dailyLogs.find((l) => l.day === 3);
       expect(aakashDay3).toBeDefined();
-      expect(aakashDay3?.status).toBe('H');
-      expect(aakashDay3?.category).toBe('HOLIDAY');
+      expect(aakashDay3?.status).toBe('W');
+      expect(aakashDay3?.category).toBe('WEEKEND');
+
+      const aakashDay4 = aakash?.dailyLogs.find((l) => l.day === 4);
+      expect(aakashDay4).toBeDefined();
+      expect(aakashDay4?.status).toBe('W');
+      expect(aakashDay4?.category).toBe('WEEKEND');
 
       // Check how many logs in flattenedLogs for Aakash Jaiswal
       const aakashFlattened = payload.flattenedLogs.filter((l) => l.employeeName.includes('Aakash Jaiswal'));
       expect(aakashFlattened.length).toBe(31);
 
-      // Verify specific Holiday records for October 2, October 3 in flattenedLogs
+      // Verify specific Holiday records for October 2 (Holiday) and October 3 (Weekend) in flattenedLogs
       const aakashFlattenedOct2 = aakashFlattened.find((l) => l.date === 'Oct 02, 2026');
       expect(aakashFlattenedOct2).toBeDefined();
       expect(aakashFlattenedOct2?.status).toBe('H');
@@ -80,8 +91,8 @@ describe('PdfParserService - Strict MoPR Report Format Enforcement', () => {
 
       const aakashFlattenedOct3 = aakashFlattened.find((l) => l.date === 'Oct 03, 2026');
       expect(aakashFlattenedOct3).toBeDefined();
-      expect(aakashFlattenedOct3?.status).toBe('H');
-      expect(aakashFlattenedOct3?.category).toBe('HOLIDAY');
+      expect(aakashFlattenedOct3?.status).toBe('W');
+      expect(aakashFlattenedOct3?.category).toBe('WEEKEND');
       expect(aakashFlattenedOct3?.inTime).toBe('--');
       expect(aakashFlattenedOct3?.outTime).toBe('--');
 

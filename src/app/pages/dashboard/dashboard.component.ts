@@ -176,6 +176,9 @@ export class DashboardComponent implements OnInit {
       q === 'h' ||
       q === 'holiday' ||
       q.includes('holiday') ||
+      q === 'w' ||
+      q === 'weekend' ||
+      q.includes('weekend') ||
       q === 'p' ||
       q === 'present' ||
       q === 'a' ||
@@ -222,6 +225,8 @@ export class DashboardComponent implements OnInit {
           r.designation.toLowerCase().includes(q) ||
           r.date.toLowerCase().includes(q) ||
           r.status.toLowerCase() === q ||
+          (q === 'w' && r.status === 'W') ||
+          ((q === 'weekend' || q === 'week end' || q.includes('weekend')) && (r.status === 'W' || r.category === 'WEEKEND')) ||
           (q === 'h' && r.status === 'H') ||
           (q.includes('holiday') && (r.status === 'H' || r.category === 'HOLIDAY')) ||
           (q === 'p' && r.status === 'P') ||
@@ -242,6 +247,8 @@ export class DashboardComponent implements OnInit {
             r.designation.toLowerCase().includes(q) ||
             r.date.toLowerCase().includes(q) ||
             r.status.toLowerCase() === q ||
+            (q === 'w' && r.status === 'W') ||
+            ((q === 'weekend' || q === 'week end' || q.includes('weekend')) && (r.status === 'W' || r.category === 'WEEKEND')) ||
             (q === 'h' && r.status === 'H') ||
             (q.includes('holiday') && (r.status === 'H' || r.category === 'HOLIDAY')) ||
             (q === 'p' && r.status === 'P') ||
@@ -338,7 +345,9 @@ export class DashboardComponent implements OnInit {
     if (!emp || !emp.dailyLogs) return 0;
     const settings = this.settingsService.settings();
     const minHours = settings.minWorkHours || 8.5;
-    const workDays = emp.dailyLogs.filter((l) => l.status !== 'H').length;
+    const workDays = emp.dailyLogs.filter(
+      (l) => l.status !== 'H' && l.status !== 'W' && !AttendanceAnalyticsHelper.isDateWeekend(l.date)
+    ).length;
     return Math.round(workDays * minHours);
   });
 
@@ -347,7 +356,9 @@ export class DashboardComponent implements OnInit {
     if (!emp || !emp.dailyLogs) return 0;
     let totalSec = 0;
     for (const l of emp.dailyLogs) {
-      if (l.status === 'P' && l.duration && l.duration !== '--') {
+      const isW = l.status === 'W' || AttendanceAnalyticsHelper.isDateWeekend(l.date);
+      // Weekend Worked Hours me complete nhi hoga
+      if (!isW && l.status === 'P' && l.duration && l.duration !== '--') {
         totalSec += AttendanceAnalyticsHelper.parseDurationToSeconds(l.duration);
       }
     }
@@ -573,6 +584,20 @@ export class DashboardComponent implements OnInit {
     this.dailyMetrics.set(payload.dailyMetrics || []);
 
     const detailedList = payload.detailedEmployees || [];
+    const monthStr = payload.month || this.selectedMonth();
+    const parts = monthStr.split(' ');
+    const monthName = parts[0] || 'October';
+    const year = parseInt(parts[1], 10) || 2026;
+    const settings = this.settingsService.settings();
+
+    detailedList.forEach((emp) => {
+      emp.dailyLogs?.forEach((log) => {
+        log.isWeekend = AttendanceAnalyticsHelper.isDateWeekend(log.date || log.day, monthName, year);
+        log.status = AttendanceAnalyticsHelper.determineLogStatus(log, settings);
+        log.category = AttendanceAnalyticsHelper.categorizeLog(log, settings);
+      });
+    });
+
     const rawEmployees = payload.employees || [];
     const normalizedEmployees: EmployeeDirectoryItem[] = rawEmployees.length > 0
       ? rawEmployees.map((emp) => {
@@ -652,6 +677,10 @@ export class DashboardComponent implements OnInit {
       const empId = emp.attendanceId || emp.id || emp.name;
       const logs = emp.dailyLogs || [];
       logs.forEach((log) => {
+        const isWeekend = AttendanceAnalyticsHelper.isDateWeekend(log.date || log.day, 'October', 2026);
+        log.isWeekend = isWeekend;
+        const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(log, settings);
+        log.status = effectiveStatus;
         const cat = AttendanceAnalyticsHelper.categorizeLog(log, settings);
         log.category = cat;
 
@@ -696,9 +725,6 @@ export class DashboardComponent implements OnInit {
             ? AttendanceAnalyticsHelper.computeDurationBetween(log.inTime, log.outTime)
             : '--';
 
-        const effectiveStatus = AttendanceAnalyticsHelper.determineLogStatus(log, settings);
-        log.status = effectiveStatus;
-
         flattened.push({
           employeeName: emp.name,
           attendanceId: emp.attendanceId.replace('#', ''),
@@ -706,11 +732,12 @@ export class DashboardComponent implements OnInit {
           date: log.date,
           status: effectiveStatus,
           inTime: isLate && !log.inTime.includes('(late)') ? `${log.inTime} (late)` : (log.inTime || '--'),
-          outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday ? '--' : 'Missing'),
+          outTime: log.outTime && !log.outTime.includes('0000-00-00') ? log.outTime : (isHoliday || isWeekend ? '--' : 'Missing'),
           duration: exactDuration,
           lateDuration: lateMins > 0 ? `${lateMins} mins` : (log.lateDuration || '--'),
           category: cat,
           isLate,
+          isWeekend,
         });
       });
     });
@@ -1016,9 +1043,30 @@ export class DashboardComponent implements OnInit {
   // ---------------------------------------------------------------------------
   // Employee Attendance Calendar Detail Modal Handlers
   // ---------------------------------------------------------------------------
+  getWeekdayAbbr(dateStrOrDay?: string | number): string {
+    if (!dateStrOrDay) return '';
+    const monthStr = this.selectedMonth();
+    const parts = monthStr.split(' ');
+    const monthName = parts[0] || 'October';
+    const year = parseInt(parts[1], 10) || 2026;
+    return AttendanceAnalyticsHelper.getWeekdayName(dateStrOrDay, monthName, year);
+  }
+
   openEmployeeDetail(empItem: EmployeeDirectoryItem): void {
     if (!this.isPdfUploaded()) return;
     const found = this.detailedEmployees().find((e) => e.name === empItem.name) || null;
+    if (found && found.dailyLogs) {
+      const settings = this.settingsService.settings();
+      const monthStr = this.selectedMonth();
+      const parts = monthStr.split(' ');
+      const monthName = parts[0] || 'October';
+      const year = parseInt(parts[1], 10) || 2026;
+      found.dailyLogs.forEach((log) => {
+        log.isWeekend = AttendanceAnalyticsHelper.isDateWeekend(log.date || log.day, monthName, year);
+        log.status = AttendanceAnalyticsHelper.determineLogStatus(log, settings);
+        log.category = AttendanceAnalyticsHelper.categorizeLog(log, settings);
+      });
+    }
     this.selectedEmployee.set(found);
     this.isEmployeeModalOpen.set(true);
   }

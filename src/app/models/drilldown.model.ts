@@ -5,17 +5,19 @@ export type AttendanceCategory =
   | 'INCOMPLETE_LATE'
   | 'MISSED'
   | 'HOLIDAY'
+  | 'WEEKEND'
   | 'TOTAL_EMP';
 
 export interface DailyLogAnalysis {
   sNo: number;
   date: string;
-  status: 'P' | 'A' | 'H' | 'HD';
+  status: 'P' | 'A' | 'H' | 'HD' | 'W';
   inTime: string;
   outTime: string;
   duration: string;
   category: AttendanceCategory;
   lateDuration?: string;
+  isWeekend?: boolean;
 }
 
 export interface AttendanceKPIs {
@@ -37,7 +39,7 @@ export interface DrilldownRow {
   attendanceId: string;
   designation: string;
   date: string;
-  status: 'P' | 'A' | 'H' | 'HD';
+  status: 'P' | 'A' | 'H' | 'HD' | 'W';
   inTime: string;
   outTime: string;
   duration: string;
@@ -45,6 +47,7 @@ export interface DrilldownRow {
   category: AttendanceCategory;
   reason?: string;
   isLate?: boolean;
+  isWeekend?: boolean;
 }
 
 export type KpiFilterType =
